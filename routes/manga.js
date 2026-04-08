@@ -16,31 +16,20 @@ const requireAuth = (req, res, next) => {
   next();
 };
 
-// ─── Multer storage ───────────────────────────────────────────────────────────
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dest = file.fieldname === 'pages'
-      ? path.join(__dirname, '..', 'uploads', 'temp')
-      : path.join(__dirname, '..', 'uploads');
-    fs.mkdirSync(dest, { recursive: true });
-    cb(null, dest);
-  },
-  filename: (req, file, cb) => {
-    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, unique + path.extname(file.originalname).toLowerCase());
+// ─── Cloudinary + Multer storage ──────────────────────────────────────────────
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+// Cloudinary auto-configures if CLOUDINARY_URL is present in process.env
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'skibiditoiletarchive',
+    allowed_formats: ['jpg', 'png', 'webp', 'gif', 'jpeg'],
   },
 });
 
-const fileFilter = (req, file, cb) => {
-  const allowed = /\.(jpe?g|png|gif|webp)$/i;
-  if (allowed.test(path.extname(file.originalname)) && /image\//i.test(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed (jpg, png, gif, webp)'));
-  }
-};
-
-const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 // ─── Strip page arrays for list views ────────────────────────────────────────
 function stripPages(manga) {
@@ -130,27 +119,19 @@ router.post(
 
       // Cover image
       if (req.files?.cover?.[0]) {
-        manga.coverImage = `/uploads/${req.files.cover[0].filename}`;
+        manga.coverImage = req.files.cover[0].path; // Cloudinary secure URL
       }
 
       await manga.save();
 
       // Process chapter pages
       if (req.files?.pages?.length) {
-        const chapNum    = parseInt(chapterNumber) || 1;
-        const chapterDir = path.join(__dirname, '..', 'uploads', manga._id.toString(), `chapter-${chapNum}`);
-        fs.mkdirSync(chapterDir, { recursive: true });
-
-        const pages = [];
-        for (const file of req.files.pages) {
-          const dest = path.join(chapterDir, file.filename);
-          fs.renameSync(file.path, dest);
-          pages.push({
-            filename:     file.filename,
-            originalName: file.originalname,
-            url:          `/uploads/${manga._id}/chapter-${chapNum}/${file.filename}`,
-          });
-        }
+        const chapNum = parseInt(chapterNumber) || 1;
+        const pages = req.files.pages.map(f => ({
+          filename:     f.filename,
+          originalName: f.originalname,
+          url:          f.path, // Cloudinary secure URL
+        }));
 
         manga.chapters.push({
           chapterNumber: chapNum,
@@ -186,20 +167,12 @@ router.post(
       if (!req.files?.pages?.length)
         return res.status(400).json({ error: 'At least one page image is required' });
 
-      const chapNum    = parseInt(req.body.chapterNumber) || (manga.chapters.length + 1);
-      const chapterDir = path.join(__dirname, '..', 'uploads', manga._id.toString(), `chapter-${chapNum}`);
-      fs.mkdirSync(chapterDir, { recursive: true });
-
-      const pages = [];
-      for (const file of req.files.pages) {
-        const dest = path.join(chapterDir, file.filename);
-        fs.renameSync(file.path, dest);
-        pages.push({
-          filename:     file.filename,
-          originalName: file.originalname,
-          url:          `/uploads/${manga._id}/chapter-${chapNum}/${file.filename}`,
-        });
-      }
+      const chapNum = parseInt(req.body.chapterNumber) || (manga.chapters.length + 1);
+      const pages = req.files.pages.map(f => ({
+        filename:     f.filename,
+        originalName: f.originalname,
+        url:          f.path, // Cloudinary secure URL
+      }));
 
       const newChapter = {
         chapterNumber: chapNum,
@@ -230,14 +203,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
     if (!isOwner && !isAdmin)
       return res.status(403).json({ error: 'Not authorized to delete this manga' });
 
-    // Delete uploaded files
-    const mangaFolder = path.join(__dirname, '..', 'uploads', manga._id.toString());
-    if (fs.existsSync(mangaFolder)) fs.rmSync(mangaFolder, { recursive: true, force: true });
-
-    if (manga.coverImage) {
-      const coverPath = path.join(__dirname, '..', manga.coverImage.replace(/^\//, ''));
-      if (fs.existsSync(coverPath)) fs.unlinkSync(coverPath);
-    }
+    // (Optional: We leave files on Cloudinary for now, or you could use cloudinary api to delete them)
 
     await Manga.findByIdAndDelete(req.params.id);
     res.json({ message: 'Manga deleted successfully' });

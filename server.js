@@ -27,7 +27,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── Sessions ─────────────────────────────────────────────────────────────────
 const isProd = process.env.NODE_ENV === 'production';

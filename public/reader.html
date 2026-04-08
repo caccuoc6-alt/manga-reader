@@ -228,7 +228,7 @@ function renderDetailPanel() {
     <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;padding-bottom:24px;border-bottom:1px solid var(--border-subtle)">
       <div style="flex-shrink:0">
         ${manga.coverImage
-          ? `<img src="${manga.coverImage.startsWith('http') ? manga.coverImage : API_BASE + manga.coverImage}" alt="${escHtml(manga.title)}"
+          ? `<img src="${manga.coverImage}" alt="${escHtml(manga.title)}"
                   style="width:120px;aspect-ratio:2/3;object-fit:cover;border-radius:12px;border:2px solid var(--border-default);box-shadow:var(--shadow-glow)" />`
           : `<div style="width:120px;aspect-ratio:2/3;background:var(--bg-elevated);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:2.5rem">📖</div>`
         }
@@ -393,7 +393,7 @@ function renderPages(chapData, chapIdx) {
     const img = document.createElement('img');
     img.className = 'reader-page-img lazy';
     img.alt = `Page ${i + 1}`;
-    img.dataset.src = page.url.startsWith('http') ? page.url : API_BASE + page.url;
+    img.dataset.src = page.url;
     img.style.width = `${width}%`;
     img.style.margin = '0 auto';
 
