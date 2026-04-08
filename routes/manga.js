@@ -11,7 +11,7 @@ const Manga   = require('../models/Manga');
 
 // ─── Auth guard ───────────────────────────────────────────────────────────────
 const requireAuth = (req, res, next) => {
-  if (!req.session?.userId)
+  if (!req.userId)
     return res.status(401).json({ error: 'Unauthorized. Please log in.' });
   next();
 };
@@ -124,7 +124,7 @@ router.post(
         author:      author?.trim() || 'Unknown',
         genres:      parsedGenres,
         status:      status || 'ongoing',
-        uploadedBy:  req.session.userId,
+        uploadedBy:  req.userId,
         chapters:    [],
       });
 
@@ -178,8 +178,8 @@ router.post(
       const manga = await Manga.findById(req.params.id);
       if (!manga) return res.status(404).json({ error: 'Manga not found' });
 
-      const isOwner = manga.uploadedBy.toString() === req.session.userId;
-      const isAdmin = req.session.role === 'admin';
+      const isOwner = manga.uploadedBy.toString() === req.userId;
+      const isAdmin = req.userRole === 'admin';
       if (!isOwner && !isAdmin)
         return res.status(403).json({ error: 'Not authorized to add chapters' });
 
@@ -225,8 +225,8 @@ router.delete('/:id', requireAuth, async (req, res) => {
     const manga = await Manga.findById(req.params.id);
     if (!manga) return res.status(404).json({ error: 'Manga not found' });
 
-    const isOwner = manga.uploadedBy.toString() === req.session.userId;
-    const isAdmin = req.session.role === 'admin';
+    const isOwner = manga.uploadedBy.toString() === req.userId;
+    const isAdmin = req.userRole === 'admin';
     if (!isOwner && !isAdmin)
       return res.status(403).json({ error: 'Not authorized to delete this manga' });
 

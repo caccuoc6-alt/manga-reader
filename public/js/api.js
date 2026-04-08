@@ -7,18 +7,26 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
   ? ''
   : 'https://manga-reader-3ize.onrender.com';
 
+// ─── JWT token helpers ───────────────────────────────────────────────────────
+const TOKEN_KEY = 'sta_jwt'; // SkibidiToiletArchive JWT
+function getToken()        { return localStorage.getItem(TOKEN_KEY); }
+function setToken(t)       { localStorage.setItem(TOKEN_KEY, t); }
+function clearToken()      { localStorage.removeItem(TOKEN_KEY); }
+
 // ─── Base fetch wrapper ─────────────────────────────────────────────────────
 const API = {
   async request(method, url, body = null, isFormData = false) {
-    const opts = {
-      method,
-      credentials: 'include',
-    };
+    const opts = { method, credentials: 'include' };
+
+    // Attach JWT if we have one
+    const token = getToken();
+    opts.headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
     if (body) {
       if (isFormData) {
         opts.body = body; // FormData — let browser set content-type
       } else {
-        opts.headers = { 'Content-Type': 'application/json' };
+        opts.headers['Content-Type'] = 'application/json';
         opts.body = JSON.stringify(body);
       }
     }
@@ -69,11 +77,13 @@ const toast = {
 let currentUser = null;
 
 async function loadCurrentUser() {
+  if (!getToken()) { currentUser = null; return null; }
   try {
     const data = await API.get('/api/auth/me');
     currentUser = data.user;
     return currentUser;
   } catch {
+    clearToken();
     currentUser = null;
     return null;
   }
@@ -123,8 +133,10 @@ async function buildNavbar(activePage = '') {
   document.getElementById('logout-btn')?.addEventListener('click', async () => {
     try {
       await API.post('/api/auth/logout');
-      toast.success('Logged out successfully');
-      setTimeout(() => window.location.href = '/', 600);
+      clearToken();
+      currentUser = null;
+      toast.success('Logged out 🌸');
+      setTimeout(() => window.location.href = './index.html', 600);
     } catch { toast.error('Logout failed'); }
   });
 
@@ -163,13 +175,13 @@ function mangaCardHTML(manga) {
     : '—';
 
   return `
-    <div class="manga-card" onclick="window.location.href='/reader.html?id=${manga._id}'" role="button" tabindex="0"
+    <div class="manga-card" onclick="window.location.href='./reader.html?id=${manga._id}'" role="button" tabindex="0"
          aria-label="Open ${escHtml(manga.title)}" data-id="${manga._id}">
       <div class="manga-card-cover">
         ${coverOrPlaceholder(manga)}
         <div class="manga-card-badge ${statusClass}">${manga.status || 'ongoing'}</div>
         <div class="manga-card-overlay">
-          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();window.location.href='/reader.html?id=${manga._id}'">
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();window.location.href='./reader.html?id=${manga._id}'">
             ▶ Read Now
           </button>
         </div>

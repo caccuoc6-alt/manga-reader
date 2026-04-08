@@ -1,10 +1,22 @@
 /**
- * routes/auth.js — Auth routes using Mongoose + MongoDB Atlas
+ * routes/auth.js — Auth routes using Mongoose + JWT
  */
 
 const express = require('express');
 const router  = express.Router();
+const jwt     = require('jsonwebtoken');
 const User    = require('../models/User');
+
+const JWT_SECRET  = process.env.JWT_SECRET || 'skibidi-jwt-secret-local-dev';
+const JWT_EXPIRES = '30d';
+
+function signToken(user) {
+  return jwt.sign(
+    { userId: user._id.toString(), role: user.role },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES }
+  );
+}
 
 // ─── POST /api/auth/register ──────────────────────────────────────────────────
 router.post('/register', async (req, res) => {
@@ -20,11 +32,9 @@ router.post('/register', async (req, res) => {
     if (!/^\S+@\S+\.\S+$/.test(email))
       return res.status(400).json({ error: 'Please enter a valid email address' });
 
-    // First user → admin
     const count = await User.countDocuments();
     const role  = count === 0 ? 'admin' : 'user';
 
-    // Password is hashed by the Mongoose pre-save hook in User model
     const user = await User.create({
       username: username.trim(),
       email:    email.toLowerCase(),
@@ -32,11 +42,11 @@ router.post('/register', async (req, res) => {
       role,
     });
 
-    req.session.userId = user._id.toString();
-    req.session.role   = user.role;
+    const token = signToken(user);
 
     res.status(201).json({
       message: 'Account created successfully',
+      token,
       user: { id: user._id, username: user.username, email: user.email, role: user.role },
     });
   } catch (err) {
@@ -55,18 +65,17 @@ router.post('/login', async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ error: 'Email and password are required' });
 
-    // Must explicitly select password since it could be excluded by default
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(401).json({ error: 'Invalid email or password' });
 
     const match = await user.comparePassword(password);
     if (!match) return res.status(401).json({ error: 'Invalid email or password' });
 
-    req.session.userId = user._id.toString();
-    req.session.role   = user.role;
+    const token = signToken(user);
 
     res.json({
       message: 'Logged in successfully',
+      token,
       user: { id: user._id, username: user.username, email: user.email, role: user.role },
     });
   } catch (err) {
@@ -76,19 +85,16 @@ router.post('/login', async (req, res) => {
 
 // ─── POST /api/auth/logout ─────────────────────────────────────────────────────
 router.post('/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) return res.status(500).json({ error: 'Logout failed' });
-    res.clearCookie('connect.sid');
-    res.json({ message: 'Logged out successfully' });
-  });
+  // JWT is stateless — client just deletes the token
+  res.json({ message: 'Logged out successfully' });
 });
 
 // ─── GET /api/auth/me ──────────────────────────────────────────────────────────
 router.get('/me', async (req, res) => {
-  if (!req.session?.userId)
+  if (!req.userId)
     return res.status(401).json({ error: 'Not authenticated' });
   try {
-    const user = await User.findById(req.session.userId);
+    const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ user: { id: user._id, username: user.username, email: user.email, role: user.role } });
   } catch (err) {

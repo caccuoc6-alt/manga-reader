@@ -46,6 +46,22 @@ app.use(
   })
 );
 
+// ─── JWT middleware (runs before all routes) ──────────────────────────────────
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'skibidi-jwt-secret-local-dev';
+
+app.use((req, res, next) => {
+  const auth = req.headers.authorization;
+  if (auth?.startsWith('Bearer ')) {
+    try {
+      const decoded = jwt.verify(auth.slice(7), JWT_SECRET);
+      req.userId   = decoded.userId;
+      req.userRole = decoded.role;
+    } catch { /* invalid token — just leave req.userId unset */ }
+  }
+  next();
+});
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 const authRoutes  = require('./routes/auth');
 const mangaRoutes = require('./routes/manga');
