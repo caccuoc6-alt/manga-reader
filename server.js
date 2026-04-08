@@ -12,7 +12,15 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
-app.use(cors({ origin: true, credentials: true }));
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://caccuoc6-alt.github.io',
+];
+app.use(cors({
+  origin: (origin, cb) => cb(null, !origin || ALLOWED_ORIGINS.includes(origin)),
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

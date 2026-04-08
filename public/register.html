@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Create a free SkibidiToiletArchive account and start reading manga today." />
   <title>Register — SkibidiToiletArchive</title>
-  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
 
@@ -14,7 +14,7 @@
 
     <!-- Logo -->
     <div class="auth-logo">
-      <a href="/" class="navbar-logo" id="logo-link" style="justify-content:center">
+      <a href="./index.html" class="navbar-logo" id="logo-link" style="justify-content:center">
         <span class="logo-icon">📚</span>
         <span class="gradient-text" style="font-size:1.8rem;font-weight:900">SkibidiToiletArchive</span>
       </a>
@@ -82,7 +82,7 @@
     </p>
 
     <div class="auth-footer">
-      Already have an account? <a href="/login.html" id="login-link">Sign in</a>
+      Already have an account? <a href="./login.html" id="login-link">Sign in</a>
     </div>
 
   </div>
@@ -90,11 +90,11 @@
 
 <div class="toast-container" id="toast-container"></div>
 
-<script src="/js/api.js"></script>
+<script src="./js/api.js"></script>
 <script>
 (async () => {
   const user = await loadCurrentUser();
-  if (user) window.location.href = '/';
+  if (user) window.location.href = './index.html';
 })();
 
 // Password strength indicator
@@ -173,7 +173,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
   try {
     const data = await API.post('/api/auth/register', { username, email, password });
     toast.success(`Welcome to SkibidiToiletArchive, ${data.user.username}! 🎉`);
-    setTimeout(() => window.location.href = '/', 800);
+    setTimeout(() => window.location.href = './index.html', 800);
   } catch (err) {
     errBanner.textContent = err.message;
     errBanner.classList.remove('hidden');
@@ -184,4 +184,6 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
 </script>
 </body>
 </html>
+
+
 

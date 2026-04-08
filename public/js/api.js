@@ -2,6 +2,11 @@
  * js/api.js — Shared API helpers, toast, auth utilities
  */
 
+// ─── Backend URL (Render when deployed, localhost when dev) ─────────────────
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? ''
+  : 'https://manga-reader-3ize.onrender.com';
+
 // ─── Base fetch wrapper ─────────────────────────────────────────────────────
 const API = {
   async request(method, url, body = null, isFormData = false) {
@@ -22,10 +27,10 @@ const API = {
     if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
     return data;
   },
-  get:    (url)          => API.request('GET',    url),
-  post:   (url, body)    => API.request('POST',   url, body),
-  delete: (url)          => API.request('DELETE', url),
-  upload: (url, formData)=> API.request('POST',   url, formData, true),
+  get:    (url)          => API.request('GET',    API_BASE + url),
+  post:   (url, body)    => API.request('POST',   API_BASE + url, body),
+  delete: (url)          => API.request('DELETE', API_BASE + url),
+  upload: (url, formData)=> API.request('POST',   API_BASE + url, formData, true),
 };
 
 // ─── Toast Notifications ────────────────────────────────────────────────────
@@ -87,7 +92,7 @@ async function buildNavbar(activePage = '') {
   navbar.innerHTML = `
     <nav class="navbar" role="navigation">
       <div class="navbar-inner">
-        <a href="/" class="navbar-logo" id="nav-logo">
+        <a href="./index.html" class="navbar-logo" id="nav-logo">
           <span class="logo-icon">🌸</span>
           <span>SkibidiToiletArchive</span>
         </a>
@@ -96,9 +101,9 @@ async function buildNavbar(activePage = '') {
           <input type="text" id="global-search" placeholder="Search manga, author…" autocomplete="off"/>
         </div>
         <div class="navbar-actions">
-          <a href="/" class="nav-link ${activePage === 'home' ? 'active' : ''}">Library</a>
+          <a href="./index.html" class="nav-link ${activePage === 'home' ? 'active' : ''}">Library</a>
           ${isLoggedIn() ? `
-            <a href="/upload.html" class="nav-link ${activePage === 'upload' ? 'active' : ''}">Upload</a>
+            <a href="./upload.html" class="nav-link ${activePage === 'upload' ? 'active' : ''}">Upload</a>
             <div class="user-badge" id="user-menu-btn" style="cursor:pointer" title="${currentUser.email}">
               <div class="user-avatar">${currentUser.username[0].toUpperCase()}</div>
               <span>${currentUser.username}</span>
@@ -106,8 +111,8 @@ async function buildNavbar(activePage = '') {
             </div>
             <button class="btn btn-ghost btn-sm" id="logout-btn">Logout</button>
           ` : `
-            <a href="/login.html" class="btn btn-ghost btn-sm">Login</a>
-            <a href="/register.html" class="btn btn-primary btn-sm">Register</a>
+            <a href="./login.html" class="btn btn-ghost btn-sm">Login</a>
+            <a href="./register.html" class="btn btn-primary btn-sm">Register</a>
           `}
         </div>
       </div>
@@ -134,7 +139,7 @@ async function buildNavbar(activePage = '') {
         if (activePage === 'home' && typeof onSearch === 'function') {
           onSearch(q);
         } else if (q) {
-          window.location.href = `/?search=${encodeURIComponent(q)}`;
+          window.location.href = `./index.html?search=${encodeURIComponent(q)}`;
         }
       }, 400);
     });
