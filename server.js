@@ -28,16 +28,19 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ─── Sessions (file-persisted via memorystore — no external DB needed) ────────
+// ─── Sessions ─────────────────────────────────────────────────────────────────
+const isProd = process.env.NODE_ENV === 'production';
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'manga-secret-key-local-dev-only',
     resave: false,
     saveUninitialized: false,
-    store: new MemoryStore({ checkPeriod: 86400000 }), // prune expired entries every 24h
+    store: new MemoryStore({ checkPeriod: 86400000 }),
     cookie: {
       maxAge: 1000 * 60 * 60 * 24, // 24 hours
       httpOnly: true,
+      sameSite: isProd ? 'none' : 'lax', // 'none' required for cross-origin (GitHub Pages → Render)
+      secure:   isProd,                  // must be true when sameSite='none'
     },
   })
 );
