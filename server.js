@@ -2,11 +2,12 @@
  * server.js — Express server (NeDB edition, no MongoDB required)
  */
 
-const express = require('express');
-const session = require('express-session');
-const MemoryStore = require('memorystore')(session);
-const cors = require('cors');
-const path = require('path');
+const express    = require('express');
+const session    = require('express-session');
+const MemoryStore= require('memorystore')(session);
+const cors       = require('cors');
+const path       = require('path');
+const connectDB  = require('./db');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -64,7 +65,13 @@ app.use((err, req, res, next) => {
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`✅ MangaVault running at → http://localhost:${PORT}`);
-  console.log(`📂 Database stored in    → ${path.join(__dirname, 'data')}`);
-});
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`✅ SkibidiToiletArchive running at → http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ Failed to connect to MongoDB:', err.message);
+    process.exit(1);
+  });

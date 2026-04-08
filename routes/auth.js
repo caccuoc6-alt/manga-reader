@@ -1,16 +1,12 @@
 /**
- * routes/auth.js — Auth routes using NeDB
+ * routes/auth.js — Auth routes using Mongoose + MongoDB Atlas
  */
 
 const express = require('express');
 const router  = express.Router();
-const bcrypt  = require('bcryptjs');
-const db      = require('../db');
+const User    = require('../models/User');
 
-// Helper: find user by field
-const findUser = (query) => db.users.findOneAsync(query);
-
-// ─── POST /api/auth/register ───────────────────────────────────────────────────
+// ─── POST /api/auth/register ──────────────────────────────────────────────────
 router.post('/register', async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -24,27 +20,19 @@ router.post('/register', async (req, res) => {
     if (!/^\S+@\S+\.\S+$/.test(email))
       return res.status(400).json({ error: 'Please enter a valid email address' });
 
-    // Check duplicates
-    const existingEmail    = await findUser({ email: email.toLowerCase() });
-    if (existingEmail)     return res.status(409).json({ error: 'Email is already registered' });
-    const existingUsername = await findUser({ username: username.trim() });
-    if (existingUsername)  return res.status(409).json({ error: 'Username is already taken' });
-
     // First user → admin
-    const count = await db.users.countAsync({});
+    const count = await User.countDocuments();
     const role  = count === 0 ? 'admin' : 'user';
 
-    const hashed = await bcrypt.hash(password, 12);
-    const user = await db.users.insertAsync({
-      username:  username.trim(),
-      email:     email.toLowerCase(),
-      password:  hashed,
+    // Password is hashed by the Mongoose pre-save hook in User model
+    const user = await User.create({
+      username: username.trim(),
+      email:    email.toLowerCase(),
+      password,
       role,
-      bookmarks: [],
-      createdAt: new Date(),
     });
 
-    req.session.userId = user._id;
+    req.session.userId = user._id.toString();
     req.session.role   = user.role;
 
     res.status(201).json({
@@ -52,8 +40,10 @@ router.post('/register', async (req, res) => {
       user: { id: user._id, username: user.username, email: user.email, role: user.role },
     });
   } catch (err) {
-    if (err.errorType === 'uniqueViolated')
-      return res.status(409).json({ error: 'Username or email already exists' });
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyValue || {})[0] || 'field';
+      return res.status(409).json({ error: `${field.charAt(0).toUpperCase() + field.slice(1)} is already taken` });
+    }
     res.status(500).json({ error: 'Server error', message: err.message });
   }
 });
@@ -65,13 +55,14 @@ router.post('/login', async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ error: 'Email and password are required' });
 
-    const user = await findUser({ email: email.toLowerCase() });
+    // Must explicitly select password since it could be excluded by default
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(401).json({ error: 'Invalid email or password' });
 
-    const match = await bcrypt.compare(password, user.password);
+    const match = await user.comparePassword(password);
     if (!match) return res.status(401).json({ error: 'Invalid email or password' });
 
-    req.session.userId = user._id;
+    req.session.userId = user._id.toString();
     req.session.role   = user.role;
 
     res.json({
@@ -97,7 +88,7 @@ router.get('/me', async (req, res) => {
   if (!req.session?.userId)
     return res.status(401).json({ error: 'Not authenticated' });
   try {
-    const user = await findUser({ _id: req.session.userId });
+    const user = await User.findById(req.session.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ user: { id: user._id, username: user.username, email: user.email, role: user.role } });
   } catch (err) {
