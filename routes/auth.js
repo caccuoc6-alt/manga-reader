@@ -50,11 +50,12 @@ router.post('/register', async (req, res) => {
       user: { id: user._id, username: user.username, email: user.email, role: user.role },
     });
   } catch (err) {
+    console.error('[REGISTER ERROR]', err);
     if (err.code === 11000) {
       const field = Object.keys(err.keyValue || {})[0] || 'field';
       return res.status(409).json({ error: `${field.charAt(0).toUpperCase() + field.slice(1)} is already taken` });
     }
-    res.status(500).json({ error: 'Server error', message: err.message });
+    res.status(500).json({ error: err.message || 'Server error', message: err.stack });
   }
 });
 
@@ -79,7 +80,8 @@ router.post('/login', async (req, res) => {
       user: { id: user._id, username: user.username, email: user.email, role: user.role },
     });
   } catch (err) {
-    res.status(500).json({ error: 'Server error', message: err.message });
+    console.error('[LOGIN ERROR]', err);
+    res.status(500).json({ error: err.message || 'Server error', message: err.stack });
   }
 });
 
