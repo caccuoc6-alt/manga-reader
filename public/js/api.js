@@ -7,6 +7,13 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
   ? ''
   : 'https://manga-reader-3ize.onrender.com';
 
+// ─── Page base for navigation (handles GitHub Pages subfolder) ───────────────
+// On GitHub Pages the app lives at /manga-reader/ so we must prefix all navigation.
+// On Render and localhost it lives at / so no prefix needed.
+const PAGE_BASE = window.location.hostname === 'caccuoc6-alt.github.io'
+  ? '/manga-reader'
+  : '';
+
 // ─── JWT token helpers ───────────────────────────────────────────────────────
 const TOKEN_KEY = 'sta_jwt'; // SkibidiToiletArchive JWT
 function getToken()        { return localStorage.getItem(TOKEN_KEY); }
@@ -136,7 +143,7 @@ async function buildNavbar(activePage = '') {
       clearToken();
       currentUser = null;
       toast.success('Logged out 🌸');
-      setTimeout(() => window.location.href = './index.html', 600);
+      setTimeout(() => window.location.href = PAGE_BASE + '/index.html', 600);
     } catch { toast.error('Logout failed'); }
   });
 
@@ -151,7 +158,7 @@ async function buildNavbar(activePage = '') {
         if (activePage === 'home' && typeof onSearch === 'function') {
           onSearch(q);
         } else if (q) {
-          window.location.href = `./index.html?search=${encodeURIComponent(q)}`;
+          window.location.href = PAGE_BASE + `/index.html?search=${encodeURIComponent(q)}`;
         }
       }, 400);
     });
@@ -175,13 +182,13 @@ function mangaCardHTML(manga) {
     : '—';
 
   return `
-    <div class="manga-card" onclick="window.location.href='./reader.html?id=${manga._id}'" role="button" tabindex="0"
+    <div class="manga-card" onclick="window.location.href=PAGE_BASE+'/reader.html?id=${manga._id}'" role="button" tabindex="0"
          aria-label="Open ${escHtml(manga.title)}" data-id="${manga._id}">
       <div class="manga-card-cover">
         ${coverOrPlaceholder(manga)}
         <div class="manga-card-badge ${statusClass}">${manga.status || 'ongoing'}</div>
         <div class="manga-card-overlay">
-          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();window.location.href='./reader.html?id=${manga._id}'">
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();window.location.href=PAGE_BASE+'/reader.html?id=${manga._id}'">
             ▶ Read Now
           </button>
         </div>
