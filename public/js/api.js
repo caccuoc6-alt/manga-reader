@@ -42,15 +42,15 @@ function initToasts() {
 
 function showToast(message, type = 'info', duration = 4000) {
   if (!toastContainer) initToasts();
-  const icons = { success: '✓', error: '✕', info: 'ℹ' };
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerHTML = `<span style="font-size:1.1rem">${icons[type]}</span> ${message}`;
-  toastContainer.appendChild(toast);
+  const icons = { success: '🌸', error: '💔', info: '✨' };
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `<span style="font-size:1.2rem">${icons[type]}</span> ${message}`;
+  toastContainer.appendChild(t);
 
   setTimeout(() => {
-    toast.classList.add('removing');
-    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+    t.classList.add('removing');
+    t.addEventListener('animationend', () => t.remove(), { once: true });
   }, duration);
 }
 
@@ -88,8 +88,8 @@ async function buildNavbar(activePage = '') {
     <nav class="navbar" role="navigation">
       <div class="navbar-inner">
         <a href="/" class="navbar-logo" id="nav-logo">
-          <span class="logo-icon">📚</span>
-          <span class="gradient-text">MangaVault</span>
+          <span class="logo-icon">🌸</span>
+          <span>MangaVault</span>
         </a>
         <div class="navbar-search">
           <span class="search-icon">🔍</span>
@@ -102,7 +102,7 @@ async function buildNavbar(activePage = '') {
             <div class="user-badge" id="user-menu-btn" style="cursor:pointer" title="${currentUser.email}">
               <div class="user-avatar">${currentUser.username[0].toUpperCase()}</div>
               <span>${currentUser.username}</span>
-              ${isAdmin() ? '<span style="font-size:0.7rem;background:#7c3aed;padding:1px 5px;border-radius:4px;margin-left:2px">ADMIN</span>' : ''}
+              ${isAdmin() ? '<span style="font-size:0.68rem;background:linear-gradient(135deg,#f472b6,#a78bfa);color:#fff;padding:2px 8px;border-radius:99px;margin-left:2px;font-weight:800">✦ ADMIN</span>' : ''}
             </div>
             <button class="btn btn-ghost btn-sm" id="logout-btn">Logout</button>
           ` : `
@@ -196,3 +196,20 @@ function formatDate(dateStr) {
 
 // ─── Init toasts on load ─────────────────────────────────────────────────────
 initToasts();
+
+// ─── Sakura Petal Rain 🌸 ────────────────────────────────────────────────────
+(function spawnPetals() {
+  const petals = ['🌸', '🌺', '✿', '❀', '🌼'];
+  const count  = 12;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('span');
+    el.className = 'petal';
+    el.textContent = petals[Math.floor(Math.random() * petals.length)];
+    el.style.left     = `${Math.random() * 100}vw`;
+    el.style.fontSize = `${0.8 + Math.random() * 1.2}rem`;
+    el.style.animationDuration  = `${6 + Math.random() * 10}s`;
+    el.style.animationDelay     = `${Math.random() * 12}s`;
+    el.style.opacity = '0';
+    document.body.appendChild(el);
+  }
+})();
