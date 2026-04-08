@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Create a free MangaVault account and start reading manga today." />
+  <title>Register — MangaVault</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<div class="auth-page">
+  <div class="auth-card">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <a href="/" class="navbar-logo" id="logo-link" style="justify-content:center">
+        <span class="logo-icon">📚</span>
+        <span class="gradient-text" style="font-size:1.8rem;font-weight:900">MangaVault</span>
+      </a>
+    </div>
+
+    <h1 class="auth-title">Create account</h1>
+    <p class="auth-subtitle">Join MangaVault — it's completely free</p>
+
+    <!-- Error Banner -->
+    <div id="error-banner" class="hidden" role="alert"
+         style="background:rgba(239,68,68,0.1);border:1px solid var(--error);border-radius:var(--radius-md);
+                padding:12px 16px;margin-bottom:20px;color:#fca5a5;font-size:0.9rem">
+    </div>
+
+    <!-- Register Form -->
+    <form id="register-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <input class="form-input" type="text" id="username" name="username"
+               placeholder="coolreader123" required autocomplete="username"
+               minlength="3" maxlength="30" />
+        <small style="color:var(--text-muted);font-size:0.78rem;margin-top:4px;display:block">
+          3–30 characters, letters and numbers
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <input class="form-input" type="email" id="email" name="email"
+               placeholder="you@example.com" required autocomplete="email" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div style="position:relative">
+          <input class="form-input" type="password" id="password" name="password"
+                 placeholder="At least 6 characters" required minlength="6"
+                 style="padding-right:44px" autocomplete="new-password" />
+          <button type="button" id="toggle-pw"
+                  style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                         background:none;border:none;color:var(--text-muted);font-size:1.1rem;padding:0">
+            👁
+          </button>
+        </div>
+        <!-- Password strength bar -->
+        <div style="margin-top:6px;height:4px;background:var(--bg-elevated);border-radius:2px;overflow:hidden">
+          <div id="pw-strength-bar" style="height:100%;width:0;transition:all 0.3s ease;border-radius:2px"></div>
+        </div>
+        <small id="pw-strength-text" style="color:var(--text-muted);font-size:0.78rem;margin-top:3px;display:block"></small>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="confirm-password">Confirm Password</label>
+        <input class="form-input" type="password" id="confirm-password"
+               placeholder="Repeat password" required autocomplete="new-password" />
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn" style="margin-top:8px">
+        Create Account
+      </button>
+    </form>
+
+    <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:12px">
+      ℹ The first registered user becomes Admin automatically.
+    </p>
+
+    <div class="auth-footer">
+      Already have an account? <a href="/login.html" id="login-link">Sign in</a>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="/js/api.js"></script>
+<script>
+(async () => {
+  const user = await loadCurrentUser();
+  if (user) window.location.href = '/';
+})();
+
+// Password strength indicator
+document.getElementById('password').addEventListener('input', (e) => {
+  const val = e.target.value;
+  const bar = document.getElementById('pw-strength-bar');
+  const txt = document.getElementById('pw-strength-text');
+  let strength = 0;
+  if (val.length >= 6)  strength++;
+  if (val.length >= 10) strength++;
+  if (/[A-Z]/.test(val)) strength++;
+  if (/[0-9]/.test(val)) strength++;
+  if (/[^A-Za-z0-9]/.test(val)) strength++;
+
+  const levels = [
+    { label: '', color: 'transparent', w: '0%' },
+    { label: 'Very weak', color: '#ef4444', w: '20%' },
+    { label: 'Weak',      color: '#f97316', w: '40%' },
+    { label: 'Fair',      color: '#f59e0b', w: '60%' },
+    { label: 'Strong',    color: '#22c55e', w: '80%' },
+    { label: 'Very strong',color: '#06b6d4',w: '100%' },
+  ];
+  const lv = levels[Math.min(strength, 5)];
+  bar.style.width = lv.w;
+  bar.style.background = lv.color;
+  txt.textContent = lv.label;
+  txt.style.color  = lv.color;
+});
+
+// Password toggle
+document.getElementById('toggle-pw').addEventListener('click', () => {
+  const pw = document.getElementById('password');
+  const btn = document.getElementById('toggle-pw');
+  if (pw.type === 'password') { pw.type = 'text'; btn.textContent = '🙈'; }
+  else { pw.type = 'password'; btn.textContent = '👁'; }
+});
+
+// Form submit
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const username = document.getElementById('username').value.trim();
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const confirm  = document.getElementById('confirm-password').value;
+  const btn      = document.getElementById('submit-btn');
+  const errBanner= document.getElementById('error-banner');
+
+  errBanner.classList.add('hidden');
+
+  // Client validation
+  if (!username || !email || !password || !confirm) {
+    errBanner.textContent = 'Please fill in all fields.';
+    errBanner.classList.remove('hidden');
+    return;
+  }
+  if (username.length < 3) {
+    errBanner.textContent = 'Username must be at least 3 characters.';
+    errBanner.classList.remove('hidden');
+    return;
+  }
+  if (password.length < 6) {
+    errBanner.textContent = 'Password must be at least 6 characters.';
+    errBanner.classList.remove('hidden');
+    return;
+  }
+  if (password !== confirm) {
+    errBanner.textContent = 'Passwords do not match.';
+    errBanner.classList.remove('hidden');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Creating account…';
+
+  try {
+    const data = await API.post('/api/auth/register', { username, email, password });
+    toast.success(`Welcome to MangaVault, ${data.user.username}! 🎉`);
+    setTimeout(() => window.location.href = '/', 800);
+  } catch (err) {
+    errBanner.textContent = err.message;
+    errBanner.classList.remove('hidden');
+    btn.disabled = false;
+    btn.textContent = 'Create Account';
+  }
+});
+</script>
+</body>
+</html>

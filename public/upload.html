@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Upload manga to MangaVault — Share your manga with the community." />
+  <title>Upload Manga — MangaVault</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<!-- Navbar -->
+<div id="navbar"></div>
+
+<!-- Main Content -->
+<main class="upload-page">
+  <div class="container">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <h1 class="page-title">📤 Upload Manga</h1>
+      <p class="page-subtitle">Share your manga with the MangaVault community</p>
+    </div>
+
+    <!-- Tabs: New Manga / Add Chapter -->
+    <div style="display:flex;gap:8px;margin-bottom:32px" role="tablist">
+      <button class="btn btn-primary" id="tab-new"    role="tab" aria-selected="true">New Manga</button>
+      <button class="btn btn-ghost"   id="tab-chapter"role="tab" aria-selected="false">Add Chapter</button>
+    </div>
+
+    <!-- ── TAB 1: New Manga ─────────────────────────────────────── -->
+    <div id="panel-new">
+      <form id="upload-form" enctype="multipart/form-data" novalidate>
+        <div class="upload-card">
+
+          <!-- Basic Info -->
+          <div class="upload-section-title">📋 Manga Details</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="title">Title *</label>
+              <input class="form-input" type="text" id="title" name="title"
+                     placeholder="eg. Attack on Titan" required maxlength="150" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="author">Author</label>
+              <input class="form-input" type="text" id="author" name="author"
+                     placeholder="eg. Hajime Isayama" maxlength="80" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="description">Description</label>
+            <textarea class="form-input form-textarea" id="description" name="description"
+                      placeholder="Write a short summary…" maxlength="2000" rows="4"></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="status">Status</label>
+              <select class="form-input form-select" id="status" name="status">
+                <option value="ongoing">Ongoing</option>
+                <option value="completed">Completed</option>
+                <option value="hiatus">Hiatus</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="genres">Genres</label>
+              <input class="form-input" type="text" id="genres" name="genres"
+                     placeholder="Action, Romance, Fantasy (comma separated)" />
+            </div>
+          </div>
+
+          <!-- Cover Image -->
+          <div class="upload-section-title" style="margin-top:24px">🖼 Cover Image</div>
+          <div class="drop-zone" id="cover-drop" title="Click or drag cover image">
+            <input type="file" id="cover-input" name="cover" accept="image/*" />
+            <div class="drop-zone-icon">🖼</div>
+            <div class="drop-zone-text">Click or drag a cover image here</div>
+            <div class="drop-zone-hint">JPG, PNG, WEBP — max 10 MB</div>
+            <div class="drop-zone-preview" id="cover-preview"></div>
+          </div>
+
+          <!-- Chapter Info -->
+          <div class="upload-section-title" style="margin-top:32px">📖 First Chapter</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="chapterNumber">Chapter Number</label>
+              <input class="form-input" type="number" id="chapterNumber" name="chapterNumber"
+                     value="1" min="1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="chapterTitle">Chapter Title (optional)</label>
+              <input class="form-input" type="text" id="chapterTitle" name="chapterTitle"
+                     placeholder="eg. The Beginning" />
+            </div>
+          </div>
+
+          <!-- Pages -->
+          <div class="drop-zone" id="pages-drop" title="Click or drag chapter pages">
+            <input type="file" id="pages-input" name="pages" accept="image/*" multiple />
+            <div class="drop-zone-icon">📄</div>
+            <div class="drop-zone-text">Click or drag page images here</div>
+            <div class="drop-zone-hint">Multiple images supported — they'll be sorted by filename</div>
+            <div id="pages-count" style="color:var(--accent-secondary);font-weight:600;margin-top:8px"></div>
+          </div>
+          <!-- Pages preview thumbnails -->
+          <div class="drop-zone-preview" id="pages-preview" style="margin-top:12px;max-height:280px;overflow-y:auto"></div>
+
+          <!-- Submit -->
+          <div style="display:flex;gap:12px;margin-top:32px;justify-content:flex-end">
+            <button type="button" class="btn btn-ghost" id="reset-btn">Reset</button>
+            <button type="submit" class="btn btn-primary btn-lg" id="upload-btn">
+              🚀 Upload Manga
+            </button>
+          </div>
+
+          <!-- Progress bar -->
+          <div id="upload-progress" class="hidden" style="margin-top:16px">
+            <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:6px" id="progress-text">Uploading…</div>
+            <div style="height:6px;background:var(--bg-elevated);border-radius:3px;overflow:hidden">
+              <div id="progress-fill"
+                   style="height:100%;width:0;background:linear-gradient(90deg,var(--accent-primary),var(--accent-pink));
+                          transition:width 0.3s ease;border-radius:3px"></div>
+            </div>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <!-- ── TAB 2: Add Chapter ────────────────────────────────────── -->
+    <div id="panel-chapter" class="hidden">
+      <div class="upload-card">
+        <div class="upload-section-title">📚 Select Manga</div>
+        <div class="form-group">
+          <label class="form-label" for="manga-select">Choose Manga</label>
+          <select class="form-input form-select" id="manga-select">
+            <option value="">— Select a manga —</option>
+          </select>
+        </div>
+
+        <div class="upload-section-title" style="margin-top:24px">📖 Chapter Details</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="ch-number">Chapter Number</label>
+            <input class="form-input" type="number" id="ch-number" value="2" min="1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ch-title">Chapter Title (optional)</label>
+            <input class="form-input" type="text" id="ch-title" placeholder="eg. The Revelation" />
+          </div>
+        </div>
+
+        <div class="drop-zone" id="ch-pages-drop">
+          <input type="file" id="ch-pages-input" accept="image/*" multiple />
+          <div class="drop-zone-icon">📄</div>
+          <div class="drop-zone-text">Click or drag page images here</div>
+          <div id="ch-pages-count" style="color:var(--accent-secondary);font-weight:600;margin-top:8px"></div>
+        </div>
+        <div class="drop-zone-preview" id="ch-pages-preview" style="margin-top:12px;max-height:220px;overflow-y:auto"></div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:28px">
+          <button class="btn btn-primary btn-lg" id="add-chapter-btn">➕ Add Chapter</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="/js/api.js"></script>
+<script>
+// ─── Auth guard ──────────────────────────────────────────────────────────────
+(async () => {
+  await buildNavbar('upload');
+  const user = await loadCurrentUser();
+  if (!user) {
+    toast.error('Please log in to upload manga.');
+    setTimeout(() => window.location.href = '/login.html', 1200);
+    return;
+  }
+  loadMyMangas();
+})();
+
+// ─── Tab switching ────────────────────────────────────────────────────────────
+document.getElementById('tab-new').addEventListener('click', () => {
+  document.getElementById('panel-new').classList.remove('hidden');
+  document.getElementById('panel-chapter').classList.add('hidden');
+  document.getElementById('tab-new').classList.replace('btn-ghost', 'btn-primary');
+  document.getElementById('tab-chapter').classList.replace('btn-primary', 'btn-ghost');
+});
+document.getElementById('tab-chapter').addEventListener('click', () => {
+  document.getElementById('panel-chapter').classList.remove('hidden');
+  document.getElementById('panel-new').classList.add('hidden');
+  document.getElementById('tab-chapter').classList.replace('btn-ghost', 'btn-primary');
+  document.getElementById('tab-new').classList.replace('btn-primary', 'btn-ghost');
+});
+
+// ─── Drop-zone helper ─────────────────────────────────────────────────────────
+function setupDropZone(dropId, inputId, previewId, countId, multi = true, isCover = false) {
+  const drop    = document.getElementById(dropId);
+  const input   = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  const countEl = countId ? document.getElementById(countId) : null;
+
+  drop.addEventListener('click', () => input.click());
+
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    drop.classList.remove('drag-over');
+    const dt = new DataTransfer();
+    Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')).forEach(f => dt.items.add(f));
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change'));
+  });
+
+  input.addEventListener('change', () => {
+    const files = Array.from(input.files);
+    if (!preview) return;
+    preview.innerHTML = '';
+    if (countEl) countEl.textContent = files.length ? `${files.length} file${files.length > 1 ? 's' : ''} selected` : '';
+
+    // Sort by name for pages
+    const sorted = isCover ? files : [...files].sort((a,b) => a.name.localeCompare(b.name));
+    sorted.slice(0, isCover ? 1 : 50).forEach(file => {
+      const url = URL.createObjectURL(file);
+      const img = document.createElement('img');
+      img.src = url;
+      img.className = isCover ? 'preview-cover' : 'preview-thumb';
+      img.onload = () => URL.revokeObjectURL(url);
+      preview.appendChild(img);
+    });
+    if (!isCover && files.length > 50) {
+      const note = document.createElement('span');
+      note.style = 'color:var(--text-muted);font-size:0.8rem;align-self:center';
+      note.textContent = `+${files.length - 50} more…`;
+      preview.appendChild(note);
+    }
+  });
+}
+
+setupDropZone('cover-drop',  'cover-input',   'cover-preview',  null,           false, true);
+setupDropZone('pages-drop',  'pages-input',   'pages-preview',  'pages-count',  true,  false);
+setupDropZone('ch-pages-drop','ch-pages-input','ch-pages-preview','ch-pages-count',true,false);
+
+// ─── Reset button ─────────────────────────────────────────────────────────────
+document.getElementById('reset-btn').addEventListener('click', () => {
+  document.getElementById('upload-form').reset();
+  document.getElementById('cover-preview').innerHTML = '';
+  document.getElementById('pages-preview').innerHTML = '';
+  document.getElementById('pages-count').textContent = '';
+});
+
+// ─── New Manga Upload ─────────────────────────────────────────────────────────
+document.getElementById('upload-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const title = document.getElementById('title').value.trim();
+  if (!title) { toast.error('Title is required.'); return; }
+
+  const pagesInput = document.getElementById('pages-input');
+  if (!pagesInput.files.length) { toast.error('Please add at least one page.'); return; }
+
+  const fd = new FormData(e.target);
+
+  // Sort pages by name and re-append in order
+  const sortedPages = [...pagesInput.files].sort((a,b) => a.name.localeCompare(b.name));
+  fd.delete('pages');
+  sortedPages.forEach(f => fd.append('pages', f));
+
+  const btn = document.getElementById('upload-btn');
+  const prog = document.getElementById('upload-progress');
+  const fill = document.getElementById('progress-fill');
+  const text = document.getElementById('progress-text');
+
+  btn.disabled = true;
+  prog.classList.remove('hidden');
+
+  // Simulate progress (actual XHR progress)
+  let fake = 0;
+  const fakeTimer = setInterval(() => {
+    fake = Math.min(fake + Math.random() * 8, 85);
+    fill.style.width = fake + '%';
+    text.textContent = `Uploading… ${Math.round(fake)}%`;
+  }, 200);
+
+  try {
+    const data = await API.upload('/api/manga', fd);
+    clearInterval(fakeTimer);
+    fill.style.width = '100%';
+    text.textContent = 'Upload complete! ✓';
+    toast.success('Manga uploaded successfully! 🎉');
+    setTimeout(() => window.location.href = `/reader.html?id=${data.manga._id}`, 900);
+  } catch (err) {
+    clearInterval(fakeTimer);
+    prog.classList.add('hidden');
+    btn.disabled = false;
+    toast.error(err.message || 'Upload failed. Try again.');
+  }
+});
+
+// ─── Load user's manga for chapter tab ───────────────────────────────────────
+async function loadMyMangas() {
+  try {
+    const data = await API.get('/api/manga?limit=100&page=1');
+    const sel = document.getElementById('manga-select');
+    (data.mangas || []).forEach(m => {
+      const o = document.createElement('option');
+      o.value = m._id;
+      o.textContent = m.title;
+      sel.appendChild(o);
+    });
+  } catch { /* ignore */ }
+}
+
+// ─── Add Chapter ──────────────────────────────────────────────────────────────
+document.getElementById('add-chapter-btn').addEventListener('click', async () => {
+  const mangaId = document.getElementById('manga-select').value;
+  const chapNum = document.getElementById('ch-number').value;
+  const chapTitle = document.getElementById('ch-title').value.trim();
+  const pagesInput = document.getElementById('ch-pages-input');
+
+  if (!mangaId)   { toast.error('Please select a manga.'); return; }
+  if (!pagesInput.files.length) { toast.error('Please add at least one page.'); return; }
+
+  const fd = new FormData();
+  fd.append('chapterNumber', chapNum);
+  fd.append('chapterTitle', chapTitle);
+  const sorted = [...pagesInput.files].sort((a,b) => a.name.localeCompare(b.name));
+  sorted.forEach(f => fd.append('pages', f));
+
+  const btn = document.getElementById('add-chapter-btn');
+  btn.disabled = true;
+  btn.textContent = 'Uploading…';
+
+  try {
+    await API.upload(`/api/manga/${mangaId}/chapter`, fd);
+    toast.success('Chapter added successfully! 🎉');
+    setTimeout(() => window.location.href = `/reader.html?id=${mangaId}`, 900);
+  } catch (err) {
+    toast.error(err.message || 'Failed to add chapter.');
+    btn.disabled = false;
+    btn.textContent = '➕ Add Chapter';
+  }
+});
+</script>
+</body>
+</html>

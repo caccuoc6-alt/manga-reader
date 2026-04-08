@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="MangaVault — Browse and read manga online. Free manga library with thousands of titles." />
+  <title>MangaVault — Manga Library</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<!-- Navbar -->
+<div id="navbar"></div>
+
+<!-- Hero Section -->
+<section class="hero" id="hero-section">
+  <div class="container">
+    <div class="hero-eyebrow">🌸 Your Digital Manga Library</div>
+    <h1 class="hero-title">
+      Discover &amp; Read<br/><span class="gradient-text">Epic Manga</span>
+    </h1>
+    <p class="hero-subtitle">Explore a curated library of manga uploaded by the community. Read online, anytime.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="/register.html" class="btn btn-primary btn-lg" id="hero-cta-register">Get Started Free</a>
+      <a href="#library" class="btn btn-ghost btn-lg" id="hero-cta-browse">Browse Library</a>
+    </div>
+    <div class="hero-stats" id="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-value" id="stat-manga">—</div>
+        <div class="hero-stat-label">Manga</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value" id="stat-chapters">—</div>
+        <div class="hero-stat-label">Chapters</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value" id="stat-views">—</div>
+        <div class="hero-stat-label">Total Views</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Library Section -->
+<section id="library" style="padding: 48px 0;">
+  <div class="container">
+
+    <!-- Filter Bar -->
+    <div class="filter-bar" id="filter-bar">
+      <button class="filter-chip active" data-genre="" id="chip-all">All</button>
+      <button class="filter-chip" data-genre="Action" id="chip-action">⚔ Action</button>
+      <button class="filter-chip" data-genre="Romance" id="chip-romance">💕 Romance</button>
+      <button class="filter-chip" data-genre="Fantasy" id="chip-fantasy">🔮 Fantasy</button>
+      <button class="filter-chip" data-genre="Horror" id="chip-horror">💀 Horror</button>
+      <button class="filter-chip" data-genre="Comedy" id="chip-comedy">😂 Comedy</button>
+      <button class="filter-chip" data-genre="Sci-Fi" id="chip-scifi">🚀 Sci-Fi</button>
+      <button class="filter-chip" data-genre="Slice of Life" id="chip-sol">🍃 Slice of Life</button>
+      <select class="form-input form-select" id="status-filter" style="max-width:160px;padding:6px 12px;font-size:0.85rem">
+        <option value="">All Status</option>
+        <option value="ongoing">Ongoing</option>
+        <option value="completed">Completed</option>
+        <option value="hiatus">Hiatus</option>
+      </select>
+    </div>
+
+    <!-- Results count -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <p id="results-count" style="color:var(--text-muted);font-size:0.9rem"></p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label style="font-size:0.85rem;color:var(--text-muted)">Sort:</label>
+        <select class="form-input form-select" id="sort-select" style="max-width:180px;padding:6px 12px;font-size:0.85rem">
+          <option value="newest">Newest</option>
+          <option value="views">Most Viewed</option>
+          <option value="az">A → Z</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Manga Grid -->
+    <div class="manga-grid" id="manga-grid">
+      <!-- Skeleton loaders -->
+      ${Array(12).fill(0).map(() => `
+        <div class="manga-card">
+          <div class="manga-card-cover skeleton" style="aspect-ratio:2/3"></div>
+          <div class="manga-card-info">
+            <div class="skeleton" style="height:14px;width:80%;margin-bottom:6px;border-radius:4px"></div>
+            <div class="skeleton" style="height:10px;width:55%;border-radius:4px"></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination" style="display:none"></div>
+
+  </div>
+</section>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="/js/api.js"></script>
+<script>
+  // ─── State ──────────────────────────────────────────────────────────────────
+  let currentPage  = 1;
+  let currentSearch= '';
+  let currentGenre = '';
+  let currentStatus= '';
+  let currentSort  = 'newest';
+  const LIMIT      = 12;
+
+  // ─── Init ───────────────────────────────────────────────────────────────────
+  (async () => {
+    await buildNavbar('home');
+
+    // Parse URL params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('search')) {
+      currentSearch = params.get('search');
+      const si = document.getElementById('global-search');
+      if (si) si.value = currentSearch;
+    }
+
+    await loadStats();
+    await fetchMangas();
+    setupFilters();
+    setupSort();
+  })();
+
+  // ─── Global search callback (used by navbar) ─────────────────────────────
+  function onSearch(q) {
+    currentSearch = q;
+    currentPage   = 1;
+    fetchMangas();
+    updateURL();
+  }
+
+  // ─── Update browser URL without reload ───────────────────────────────────
+  function updateURL() {
+    const params = new URLSearchParams();
+    if (currentSearch) params.set('search', currentSearch);
+    if (currentPage > 1) params.set('page', currentPage);
+    history.replaceState({}, '', params.toString() ? `?${params}` : '/');
+  }
+
+  // ─── Fetch & Render Mangas ────────────────────────────────────────────────
+  async function fetchMangas() {
+    const grid  = document.getElementById('manga-grid');
+    const count = document.getElementById('results-count');
+
+    // Show skeleton
+    grid.innerHTML = Array(LIMIT).fill(0).map(() => `
+      <div class="manga-card">
+        <div class="manga-card-cover skeleton" style="aspect-ratio:2/3"></div>
+        <div class="manga-card-info">
+          <div class="skeleton" style="height:14px;width:80%;margin-bottom:6px;border-radius:4px"></div>
+          <div class="skeleton" style="height:10px;width:55%;border-radius:4px"></div>
+        </div>
+      </div>`).join('');
+
+    try {
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: LIMIT,
+        ...(currentSearch && { search: currentSearch }),
+        ...(currentGenre  && { genre:  currentGenre  }),
+        ...(currentStatus && { status: currentStatus }),
+      });
+
+      const data = await API.get(`/api/manga?${params}`);
+      let mangas = data.mangas || [];
+
+      // Client-side sort
+      if (currentSort === 'views') mangas.sort((a,b) => (b.views||0) - (a.views||0));
+      else if (currentSort === 'az') mangas.sort((a,b) => a.title.localeCompare(b.title));
+
+      count.textContent = `${data.pagination.total} manga title${data.pagination.total !== 1 ? 's' : ''}${currentSearch ? ` for "${currentSearch}"` : ''}`;
+
+      if (mangas.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1">
+            <div class="empty-state-icon">🔍</div>
+            <h3>No manga found</h3>
+            <p>Try a different search or <a href="/upload.html" style="color:var(--accent-secondary)">upload one!</a></p>
+          </div>`;
+        document.getElementById('pagination').style.display = 'none';
+        return;
+      }
+
+      grid.innerHTML = mangas.map(mangaCardHTML).join('');
+      renderPagination(data.pagination);
+
+    } catch (err) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon">⚠️</div><h3>Failed to load manga</h3><p>${err.message}</p></div>`;
+    }
+  }
+
+  // ─── Pagination ───────────────────────────────────────────────────────────
+  function renderPagination({ page, pages }) {
+    const pg = document.getElementById('pagination');
+    if (pages <= 1) { pg.style.display = 'none'; return; }
+    pg.style.display = 'flex';
+    pg.innerHTML = '';
+
+    const addBtn = (label, p, disabled = false, active = false) => {
+      const btn = document.createElement('button');
+      btn.className = `page-btn${active ? ' active' : ''}`;
+      btn.textContent = label;
+      btn.disabled = disabled;
+      btn.onclick = () => { currentPage = p; fetchMangas(); updateURL(); window.scrollTo({top:0,behavior:'smooth'}); };
+      pg.appendChild(btn);
+    };
+
+    addBtn('‹', page - 1, page <= 1);
+    for (let i = Math.max(1, page - 2); i <= Math.min(pages, page + 2); i++) {
+      addBtn(i, i, false, i === page);
+    }
+    addBtn('›', page + 1, page >= pages);
+  }
+
+  // ─── Load stats ───────────────────────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const data = await API.get('/api/manga?limit=1000&page=1');
+      const mangas = data.mangas || [];
+      document.getElementById('stat-manga').textContent    = data.pagination?.total ?? 0;
+      document.getElementById('stat-chapters').textContent = mangas.reduce((s, m) => s + (m.chapters?.length || 0), 0);
+      document.getElementById('stat-views').textContent    = mangas.reduce((s, m) => s + (m.views || 0), 0).toLocaleString();
+    } catch { /* non-critical */ }
+  }
+
+  // ─── Genre chips ──────────────────────────────────────────────────────────
+  function setupFilters() {
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentGenre = chip.dataset.genre;
+        currentPage  = 1;
+        fetchMangas();
+      });
+    });
+    document.getElementById('status-filter').addEventListener('change', e => {
+      currentStatus = e.target.value;
+      currentPage   = 1;
+      fetchMangas();
+    });
+  }
+
+  // ─── Sort ─────────────────────────────────────────────────────────────────
+  function setupSort() {
+    document.getElementById('sort-select').addEventListener('change', e => {
+      currentSort = e.target.value;
+      fetchMangas();
+    });
+  }
+</script>
+</body>
+</html>

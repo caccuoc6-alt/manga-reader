@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Login to MangaVault — Access your manga library and reading history." />
+  <title>Login — MangaVault</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<div class="auth-page">
+  <div class="auth-card">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <a href="/" class="navbar-logo" id="logo-link" style="justify-content:center">
+        <span class="logo-icon">📚</span>
+        <span class="gradient-text" style="font-size:1.8rem;font-weight:900">MangaVault</span>
+      </a>
+    </div>
+
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-subtitle">Sign in to your account to continue reading</p>
+
+    <!-- Error Banner -->
+    <div id="error-banner" class="hidden" role="alert"
+         style="background:rgba(239,68,68,0.1);border:1px solid var(--error);border-radius:var(--radius-md);
+                padding:12px 16px;margin-bottom:20px;color:#fca5a5;font-size:0.9rem">
+    </div>
+
+    <!-- Login Form -->
+    <form id="login-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <input class="form-input" type="email" id="email" name="email"
+               placeholder="you@example.com" required autocomplete="email" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div style="position:relative">
+          <input class="form-input" type="password" id="password" name="password"
+                 placeholder="••••••••" required autocomplete="current-password"
+                 style="padding-right:44px" />
+          <button type="button" id="toggle-pw"
+                  style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                         background:none;border:none;color:var(--text-muted);font-size:1.1rem;padding:0">
+            👁
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn" style="margin-top:8px">
+        Sign In
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Don't have an account? <a href="/register.html" id="register-link">Create one free</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="/js/api.js"></script>
+<script>
+(async () => {
+  // Redirect if already logged in
+  const user = await loadCurrentUser();
+  if (user) window.location.href = '/';
+})();
+
+// Password toggle
+document.getElementById('toggle-pw').addEventListener('click', () => {
+  const pw = document.getElementById('password');
+  const btn = document.getElementById('toggle-pw');
+  if (pw.type === 'password') { pw.type = 'text'; btn.textContent = '🙈'; }
+  else { pw.type = 'password'; btn.textContent = '👁'; }
+});
+
+// Form submit
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn      = document.getElementById('submit-btn');
+  const errBanner= document.getElementById('error-banner');
+
+  errBanner.classList.add('hidden');
+
+  if (!email || !password) {
+    errBanner.textContent = 'Please fill in all fields.';
+    errBanner.classList.remove('hidden');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+
+  try {
+    const data = await API.post('/api/auth/login', { email, password });
+    toast.success(`Welcome back, ${data.user.username}!`);
+    setTimeout(() => window.location.href = '/', 700);
+  } catch (err) {
+    errBanner.textContent = err.message;
+    errBanner.classList.remove('hidden');
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+});
+</script>
+</body>
+</html>
