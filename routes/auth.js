@@ -5,7 +5,8 @@
 const express = require('express');
 const router  = express.Router();
 const jwt     = require('jsonwebtoken');
-const User    = require('../models/User');
+const User = require('../models/User');
+const upload = require('../middleware/upload');
 
 const JWT_SECRET  = process.env.JWT_SECRET || 'skibidi-jwt-secret-local-dev';
 const JWT_EXPIRES = '30d';
@@ -91,16 +92,34 @@ router.post('/logout', (req, res) => {
   res.json({ message: 'Logged out successfully' });
 });
 
-// ─── GET /api/auth/me ──────────────────────────────────────────────────────────
 router.get('/me', async (req, res) => {
   if (!req.userId)
     return res.status(401).json({ error: 'Not authenticated' });
   try {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ user: { id: user._id, username: user.username, email: user.email, role: user.role } });
+    res.json({ user: { id: user._id, username: user.username, email: user.email, role: user.role, profilePicture: user.profilePicture } });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ─── POST /api/auth/profile-picture ──────────────────────────────────────────
+router.post('/profile-picture', upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: 'Not authenticated' });
+    if (!req.file) return res.status(400).json({ error: 'No image provided' });
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // req.file.path is the Cloudinary secure URL!
+    user.profilePicture = req.file.path;
+    await user.save();
+
+    res.json({ message: 'Profile picture updated', profilePicture: user.profilePicture });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', message: err.message });
   }
 });
 

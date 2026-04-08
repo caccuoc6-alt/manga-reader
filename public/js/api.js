@@ -121,11 +121,17 @@ async function buildNavbar(activePage = '') {
           <a href="./index.html" class="nav-link ${activePage === 'home' ? 'active' : ''}">Library</a>
           ${isLoggedIn() ? `
             <a href="./upload.html" class="nav-link ${activePage === 'upload' ? 'active' : ''}">Upload</a>
-            <div class="user-badge" id="user-menu-btn" style="cursor:pointer" title="${currentUser.email}">
-              <div class="user-avatar">${currentUser.username[0].toUpperCase()}</div>
+            <div class="user-badge" id="user-menu-btn" style="cursor:pointer" title="Click to change avatar (${currentUser.email})">
+              <div class="user-avatar" id="avatar-trigger" style="overflow:hidden">
+                ${currentUser.profilePicture 
+                  ? `<img src="${currentUser.profilePicture}" style="width:100%;height:100%;object-fit:cover" />`
+                  : currentUser.username[0].toUpperCase()
+                }
+              </div>
               <span>${currentUser.username}</span>
               ${isAdmin() ? '<span style="font-size:0.68rem;background:linear-gradient(135deg,#f472b6,#a78bfa);color:#fff;padding:2px 8px;border-radius:99px;margin-left:2px;font-weight:800">✦ ADMIN</span>' : ''}
             </div>
+            <input type="file" id="avatar-input" accept="image/*" style="display:none" />
             <button class="btn btn-ghost btn-sm" id="logout-btn">Logout</button>
           ` : `
             <a href="./login.html" class="btn btn-ghost btn-sm">Login</a>
@@ -146,6 +152,26 @@ async function buildNavbar(activePage = '') {
       setTimeout(() => window.location.href = PAGE_BASE + '/index.html', 600);
     } catch { toast.error('Logout failed'); }
   });
+
+  // Avatar Upload
+  const avatarTrigger = document.getElementById('avatar-trigger');
+  const avatarInput = document.getElementById('avatar-input');
+  if (avatarTrigger && avatarInput) {
+    avatarTrigger.addEventListener('click', () => avatarInput.click());
+    avatarInput.addEventListener('change', async (e) => {
+      if (!e.target.files.length) return;
+      const fd = new FormData();
+      fd.append('avatar', e.target.files[0]);
+      toast.success('Uploading profile picture...');
+      try {
+        const res = await API.upload('/api/auth/profile-picture', fd);
+        toast.success(res.message);
+        setTimeout(() => window.location.reload(), 800);
+      } catch (err) {
+        toast.error(err.message || 'Failed to upload profile picture');
+      }
+    });
+  }
 
   // Search (debounced)
   const searchInput = document.getElementById('global-search');
