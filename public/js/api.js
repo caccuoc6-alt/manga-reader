@@ -161,7 +161,8 @@ async function buildNavbar(activePage = '') {
 // ─── Cover image fallback ────────────────────────────────────────────────────
 function coverOrPlaceholder(manga) {
   if (manga.coverImage) {
-    return `<img src="${manga.coverImage}" alt="${escHtml(manga.title)}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=&quot;manga-card-cover-placeholder&quot;><span>📖</span></div>'" />`;
+    const src = manga.coverImage.startsWith('http') ? manga.coverImage : API_BASE + manga.coverImage;
+    return `<img src="${src}" alt="${escHtml(manga.title)}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=&quot;manga-card-cover-placeholder&quot;><span>📖</span></div>'" />`;
   }
   return `<div class="manga-card-cover-placeholder"><span>📖</span><small style="font-size:0.6rem;margin-top:4px">No Cover</small></div>`;
 }
