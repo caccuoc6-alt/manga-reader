@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Read manga on MangaVault — vertical scroll reader." />
-  <title>Reader — MangaVault</title>
+  <meta name="description" content="Read manga on SkibidiToiletArchive — vertical scroll reader." />
+  <title>Reader — SkibidiToiletArchive</title>
   <link rel="stylesheet" href="/css/style.css" />
   <style>
     /* Reader-specific overrides */
@@ -199,7 +199,7 @@ async function loadManga() {
     const data = await API.get(`/api/manga/${mangaId}`);
     manga = data.manga;
 
-    document.title = `${manga.title} — MangaVault`;
+    document.title = `${manga.title} — SkibidiToiletArchive`;
     document.getElementById('reader-manga-title').textContent = manga.title;
 
     renderDetailPanel();
@@ -545,3 +545,4 @@ document.addEventListener('keydown', (e) => {
 </script>
 </body>
 </html>
+

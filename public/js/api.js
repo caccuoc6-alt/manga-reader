@@ -89,7 +89,7 @@ async function buildNavbar(activePage = '') {
       <div class="navbar-inner">
         <a href="/" class="navbar-logo" id="nav-logo">
           <span class="logo-icon">🌸</span>
-          <span>MangaVault</span>
+          <span>SkibidiToiletArchive</span>
         </a>
         <div class="navbar-search">
           <span class="search-icon">🔍</span>
@@ -213,3 +213,4 @@ initToasts();
     document.body.appendChild(el);
   }
 })();
+
