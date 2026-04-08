@@ -170,7 +170,7 @@
 
 <div class="toast-container" id="toast-container"></div>
 
-<script src="./js/api.js"></script>
+<script src="./js/api.js?v=test3"></script>
 <script>
 // ─── Auth guard ──────────────────────────────────────────────────────────────
 (async () => {
@@ -294,7 +294,7 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
     fill.style.width = '100%';
     text.textContent = 'Upload complete! ✓';
     toast.success('Manga uploaded successfully! 🎉');
-    setTimeout(() => window.location.href = `/reader.html?id=${data.manga._id}`, 900);
+    setTimeout(() => window.location.href = `./reader.html?id=${data.manga._id}`, 900);
   } catch (err) {
     clearInterval(fakeTimer);
     prog.classList.add('hidden');
@@ -340,7 +340,7 @@ document.getElementById('add-chapter-btn').addEventListener('click', async () =>
   try {
     await API.upload(`/api/manga/${mangaId}/chapter`, fd);
     toast.success('Chapter added successfully! 🎉');
-    setTimeout(() => window.location.href = `/reader.html?id=${mangaId}`, 900);
+    setTimeout(() => window.location.href = `./reader.html?id=${mangaId}`, 900);
   } catch (err) {
     toast.error(err.message || 'Failed to add chapter.');
     btn.disabled = false;
