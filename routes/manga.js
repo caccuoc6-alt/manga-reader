@@ -8,6 +8,8 @@ const multer  = require('multer');
 const path    = require('path');
 const fs      = require('fs');
 const Manga   = require('../models/Manga');
+const User    = require('../models/User');
+const Comment = require('../models/Comment');
 
 // ─── Auth guard ───────────────────────────────────────────────────────────────
 const requireAuth = (req, res, next) => {
@@ -186,14 +188,23 @@ router.delete('/:id', requireAuth, async (req, res) => {
     const manga = await Manga.findById(req.params.id);
     if (!manga) return res.status(404).json({ error: 'Manga not found' });
 
-    const isOwner = manga.uploadedBy.toString() === req.userId;
+    const isOwner = manga.uploadedBy?.toString() === req.userId;
     const isAdmin = req.userRole === 'admin';
     if (!isOwner && !isAdmin)
       return res.status(403).json({ error: 'Not authorized to delete this manga' });
 
-    // (Optional: We leave files on Cloudinary for now, or you could use cloudinary api to delete them)
-
+    // Delete manga
     await Manga.findByIdAndDelete(req.params.id);
+
+    // Cascading Delete: Clean up bookmarks across all users
+    await User.updateMany(
+      { bookmarks: req.params.id },
+      { $pull: { bookmarks: req.params.id } }
+    );
+
+    // Cascading Delete: Clean up chapter comments related to this manga
+    await Comment.deleteMany({ mangaId: req.params.id });
+
     res.json({ message: 'Manga deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: 'Delete failed', message: err.message });
