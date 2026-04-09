@@ -62,13 +62,15 @@ app.use((req, res, next) => {
 });
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-const authRoutes  = require('./routes/auth');
-const mangaRoutes = require('./routes/manga');
-const adminRoutes = require('./routes/admin');
+const authRoutes    = require('./routes/auth');
+const mangaRoutes   = require('./routes/manga');
+const adminRoutes   = require('./routes/admin');
+const commentRoutes = require('./routes/comment');
 
-app.use('/api/auth',  authRoutes);
-app.use('/api/manga', mangaRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/auth',     authRoutes);
+app.use('/api/manga',    mangaRoutes);
+app.use('/api/admin',    adminRoutes);
+app.use('/api/comments', commentRoutes);
 
 // ─── Catch-all: serve HTML pages (SPA-style) ─────────────────────────────────
 app.get('*', (req, res) => {

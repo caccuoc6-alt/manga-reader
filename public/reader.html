@@ -129,6 +129,21 @@
   <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap" id="reader-end-actions"></div>
 </div>
 
+<!-- Comments Section -->
+<div class="comments-section" id="comments-section" style="max-width: 800px; margin: 40px auto 100px; padding: 0 var(--gap-md); display: none;">
+  <h3 style="font-size: 1.4rem; font-weight: 900; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; font-family: var(--font-title);">
+    💬 Comments <span id="comment-count" style="font-size: 0.85rem; color: var(--text-muted); background: var(--bg-elevated); padding: 2px 10px; border-radius: 99px;">0</span>
+  </h3>
+  
+  <div id="comment-form-container" style="margin-bottom: 30px;">
+    <!-- Filled by JS -->
+  </div>
+
+  <div id="comments-list" style="display: flex; flex-direction: column; gap: 16px;">
+    <!-- Comments go here -->
+  </div>
+</div>
+
 <!-- Floating Controls -->
 <div class="reader-controls">
   <button class="reader-fab" id="fab-top"    title="Back to top">↑</button>
@@ -368,6 +383,7 @@ function loadChapter(idx) {
 
   updateSidebarActive(idx);
   renderPages(chapData, idx);
+  loadComments(chapData.chapterNumber);
 }
 
 // ─── Render Pages with IntersectionObserver lazy loading ──────────────────────
@@ -467,6 +483,123 @@ function renderPages(chapData, chapIdx) {
   // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// ─── Comments Logic ───────────────────────────────────────────────────────────
+async function loadComments(chapterNumber) {
+  const section = document.getElementById('comments-section');
+  const list = document.getElementById('comments-list');
+  const countBadge = document.getElementById('comment-count');
+  const formContainer = document.getElementById('comment-form-container');
+
+  section.style.display = 'block';
+  list.innerHTML = '<div class="spinner" style="margin: 20px auto;"></div>';
+
+  // Render form
+  if (isLoggedIn()) {
+    formContainer.innerHTML = `
+      <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <div class="user-avatar" style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center;">
+          ${currentUser.profilePicture ? `<img src="${currentUser.profilePicture}" style="width:100%;height:100%;object-fit:cover" />` : currentUser.username[0].toUpperCase()}
+        </div>
+        <div style="flex: 1;">
+          <textarea id="comment-input" class="form-input" rows="3" placeholder="Add a comment..." style="resize: vertical; margin-bottom: 8px;"></textarea>
+          <div style="text-align: right;">
+            <button class="btn btn-primary btn-sm" id="post-comment-btn" onclick="postComment(${chapterNumber})">Post Comment</button>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    formContainer.innerHTML = `
+      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; text-align: center; color: var(--text-muted);">
+        <p style="margin-bottom: 12px; font-weight: 600;">You must be logged in to post a comment.</p>
+        <a href="./login.html" class="btn btn-primary btn-sm">Login</a>
+        <a href="./register.html" class="btn btn-ghost btn-sm">Register</a>
+      </div>
+    `;
+  }
+
+  // Fetch comments
+  try {
+    const data = await API.get(`/api/comments?mangaId=${mangaId}&chapterNumber=${chapterNumber}`);
+    const comments = data.comments;
+    countBadge.textContent = comments.length || '0';
+
+    if (!comments.length) {
+      list.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size: 0.9rem;">No comments yet. Be the first!</div>';
+      return;
+    }
+
+    list.innerHTML = comments.map(c => {
+      const isOwner = currentUser && c.user._id === currentUser.id;
+      const isAdminUser = currentUser && currentUser.role === 'admin';
+      const userBadge = c.user.role === 'admin' ? '<span style="font-size:0.6rem;background:linear-gradient(135deg,#f472b6,#a78bfa);color:#fff;padding:2px 6px;border-radius:99px;margin-left:6px;font-weight:900;">ADMIN</span>' : '';
+      const avatarHtml = c.user.profilePicture 
+          ? `<img src="${c.user.profilePicture}" style="width:100%;height:100%;object-fit:cover" />`
+          : c.user.username[0].toUpperCase();
+
+      return `
+        <div class="comment-item" id="comment-${c._id}" style="display: flex; gap: 12px; background: var(--bg-card); padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
+          <div class="user-avatar" style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-weight: bold;">
+            ${avatarHtml}
+          </div>
+          <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+              <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-primary); display: flex; align-items: center;">
+                ${escHtml(c.user.username)} ${userBadge}
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">
+                ${formatDate(c.createdAt)}
+              </div>
+            </div>
+            <div style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap;">${escHtml(c.content)}</div>
+            ${(isOwner || isAdminUser) ? `
+              <div style="margin-top: 8px; text-align: right;">
+                <button class="btn btn-ghost btn-sm" style="color: var(--error); padding: 2px 8px; font-size: 0.75rem;" onclick="deleteComment('${c._id}', ${chapterNumber})">Delete</button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    list.innerHTML = `<div style="color: var(--error); text-align: center;">Failed to load comments: ${err.message}</div>`;
+  }
+}
+
+async function postComment(chapterNumber) {
+  const input = document.getElementById('comment-input');
+  const btn = document.getElementById('post-comment-btn');
+  const content = input.value.trim();
+  
+  if (!content) return toast.error('Comment cannot be empty');
+  
+  btn.disabled = true;
+  btn.textContent = 'Posting...';
+  
+  try {
+    await API.post('/api/comments', { mangaId, chapterNumber, content });
+    toast.success('Comment posted! 🌸');
+    input.value = '';
+    await loadComments(chapterNumber); // Reload comments to show the new one
+  } catch (err) {
+    toast.error(err.message || 'Failed to post comment');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Post Comment';
+  }
+}
+
+window.deleteComment = async (id, chapterNumber) => {
+  if (!confirm('Are you sure you want to delete this comment?')) return;
+  try {
+    await API.delete(`/api/comments/${id}`);
+    toast.success('Comment deleted.');
+    await loadComments(chapterNumber);
+  } catch (err) {
+    toast.error(err.message || 'Failed to delete comment');
+  }
+};
 
 // ─── Reading Progress Bar ─────────────────────────────────────────────────────
 window.addEventListener('scroll', () => {
