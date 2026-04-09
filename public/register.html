@@ -72,6 +72,12 @@
                placeholder="Repeat password" required autocomplete="new-password" />
       </div>
 
+      <div class="form-group">
+        <label class="form-label" for="admin-key">Admin Key (Optional)</label>
+        <input class="form-input" type="password" id="admin-key"
+               placeholder="Secret admin key..." />
+      </div>
+
       <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn" style="margin-top:8px">
         Create Account
       </button>
@@ -140,6 +146,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
   const email    = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
   const confirm  = document.getElementById('confirm-password').value;
+  const adminKey = document.getElementById('admin-key').value;
   const btn      = document.getElementById('submit-btn');
   const errBanner= document.getElementById('error-banner');
 
@@ -171,7 +178,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
   btn.textContent = 'Creating account…';
 
   try {
-    const data = await API.post('/api/auth/register', { username, email, password });
+    const data = await API.post('/api/auth/register', { username, email, password, adminKey });
     if (data.token) setToken(data.token);
     toast.success(`Welcome to SkibidiToiletArchive, ${data.user.username}! 🎉`);
     setTimeout(() => window.location.href = './index.html', 800);

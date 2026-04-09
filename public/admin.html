@@ -350,7 +350,15 @@
   <div class="access-denied-icon">🚫</div>
   <h2>Access Denied</h2>
   <p>This page is reserved for administrators only. Please log in with an admin account.</p>
-  <a href="./index.html" class="btn btn-primary" id="denied-home-btn">🌸 Back to Library</a>
+  <a href="./index.html" class="btn btn-primary" id="denied-home-btn" style="margin-bottom: 20px;">🌸 Back to Library</a>
+
+  <div id="upgrade-section" class="hidden" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-subtle); max-width: 300px; width: 100%;">
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; font-weight: 700;">Got an admin key?</p>
+    <div style="display: flex; gap: 8px;">
+      <input type="password" id="admin-key-input" class="form-input" placeholder="Secret key..." />
+      <button class="btn btn-primary" id="claim-admin-btn" style="padding: 8px 16px;">Claim</button>
+    </div>
+  </div>
 </div>
 
 <!-- Loading State -->
@@ -468,6 +476,22 @@
   if (!isAdmin()) {
     loading.classList.add('hidden');
     denied.classList.remove('hidden');
+    document.getElementById('upgrade-section').classList.remove('hidden');
+    
+    // Setup claim button
+    document.getElementById('claim-admin-btn').addEventListener('click', async () => {
+      const key = document.getElementById('admin-key-input').value;
+      if (!key) return toast.error('Enter an admin key');
+      try {
+        const res = await API.post('/api/auth/upgrade', { adminKey: key });
+        setToken(res.token); // Store the new token with admin role
+        toast.success(res.message);
+        setTimeout(() => window.location.reload(), 1000); // Reload to load dashboard
+      } catch (err) {
+        toast.error(err.message || 'Failed to claim admin');
+      }
+    });
+
     return;
   }
 

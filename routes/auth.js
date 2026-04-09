@@ -34,7 +34,12 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Please enter a valid email address' });
 
     const count = await User.countDocuments();
-    const role  = count === 0 ? 'admin' : 'user';
+    let role  = count === 0 ? 'admin' : 'user';
+    
+    // Feature: Allow claiming admin via key
+    if (req.body.adminKey === (process.env.ADMIN_KEY || 'skibidi-admin')) {
+      role = 'admin';
+    }
 
     const user = await User.create({
       username: username.trim(),
@@ -101,6 +106,30 @@ router.get('/me', async (req, res) => {
     res.json({ user: { id: user._id, username: user.username, email: user.email, role: user.role, profilePicture: user.profilePicture } });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ─── POST /api/auth/upgrade ──────────────────────────────────────────────────
+router.post('/upgrade', async (req, res) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: 'Not authenticated. Please log in first.' });
+    if (!req.body.adminKey) return res.status(400).json({ error: 'Admin key is required' });
+
+    if (req.body.adminKey !== (process.env.ADMIN_KEY || 'skibidi-admin')) {
+      return res.status(403).json({ error: 'Invalid admin key' });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.role = 'admin';
+    await user.save();
+
+    // Since role is in JWT, we must issue a new token
+    const token = signToken(user);
+    res.json({ message: 'Successfully upgraded to admin! 🌸', token, user: { id: user._id, username: user.username, role: user.role } });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', message: err.message });
   }
 });
 
