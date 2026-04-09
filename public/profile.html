@@ -149,6 +149,15 @@
       z-index: 1;
       white-space: pre-wrap;
     }
+    .profile-manga-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 16px;
+    }
+    .profile-manga-grid .manga-card-title { font-size: 0.8rem; }
+    .profile-manga-grid .manga-card-meta { font-size: 0.7rem; }
+    .profile-manga-grid .manga-card-info { padding: 10px; }
+    .profile-manga-grid .manga-card-chapters { font-size: 0.7rem; }
   </style>
 </head>
 
@@ -201,12 +210,12 @@
 
       <!-- Uploads Tab -->
       <div id="view-uploads">
-        <div class="grid" id="uploads-grid"></div>
+        <div class="profile-manga-grid" id="uploads-grid"></div>
       </div>
 
       <!-- Bookmarks Tab -->
       <div id="view-bookmarks" class="hidden">
-        <div class="grid" id="bookmarks-grid"></div>
+        <div class="profile-manga-grid" id="bookmarks-grid"></div>
       </div>
     </div>
   </main>
