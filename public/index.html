@@ -41,19 +41,23 @@
   </div>
 </section>
 
-<!-- Manga Spotlight (Daily Recommendation) -->
-<section class="rec-section" id="recommendation-section">
+<!-- Trending Recommendations -->
+<section id="recommendation-section" style="padding:40px 0 0;">
   <div class="container">
-    <div class="rec-card" id="daily-rec-card">
-      <div class="rec-cover skeleton"></div>
-      <div class="rec-info">
-        <div class="skeleton" style="height:12px;width:120px;margin-bottom:12px"></div>
-        <div class="skeleton" style="height:28px;width:70%;margin-bottom:16px"></div>
-        <div class="skeleton" style="height:14px;width:90%;margin-bottom:10px"></div>
-        <div class="skeleton" style="height:14px;width:85%;margin-bottom:10px"></div>
-        <div class="skeleton" style="height:14px;width:95%;margin-bottom:10px"></div>
-        <div class="skeleton" style="height:40px;width:140px;margin-top:auto"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:0.7rem;font-weight:800;color:var(--accent-primary);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">From MyAnimeList</div>
+        <h2 style="font-size:1.3rem;font-weight:800;color:var(--text-primary)">🔥 Trending Manga</h2>
       </div>
+    </div>
+    <div id="trending-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px">
+      <!-- skeleton -->
+      <div class="manga-card"><div class="manga-card-cover skeleton" style="aspect-ratio:2/3"></div><div class="manga-card-info"><div class="skeleton" style="height:12px;width:80%;margin-bottom:5px;border-radius:4px"></div><div class="skeleton" style="height:10px;width:50%;border-radius:4px"></div></div></div>
+      <div class="manga-card"><div class="manga-card-cover skeleton" style="aspect-ratio:2/3"></div><div class="manga-card-info"><div class="skeleton" style="height:12px;width:80%;margin-bottom:5px;border-radius:4px"></div><div class="skeleton" style="height:10px;width:50%;border-radius:4px"></div></div></div>
+      <div class="manga-card"><div class="manga-card-cover skeleton" style="aspect-ratio:2/3"></div><div class="manga-card-info"><div class="skeleton" style="height:12px;width:80%;margin-bottom:5px;border-radius:4px"></div><div class="skeleton" style="height:10px;width:50%;border-radius:4px"></div></div></div>
+      <div class="manga-card"><div class="manga-card-cover skeleton" style="aspect-ratio:2/3"></div><div class="manga-card-info"><div class="skeleton" style="height:12px;width:80%;margin-bottom:5px;border-radius:4px"></div><div class="skeleton" style="height:10px;width:50%;border-radius:4px"></div></div></div>
+      <div class="manga-card"><div class="manga-card-cover skeleton" style="aspect-ratio:2/3"></div><div class="manga-card-info"><div class="skeleton" style="height:12px;width:80%;margin-bottom:5px;border-radius:4px"></div><div class="skeleton" style="height:10px;width:50%;border-radius:4px"></div></div></div>
+      <div class="manga-card"><div class="manga-card-cover skeleton" style="aspect-ratio:2/3"></div><div class="manga-card-info"><div class="skeleton" style="height:12px;width:80%;margin-bottom:5px;border-radius:4px"></div><div class="skeleton" style="height:10px;width:50%;border-radius:4px"></div></div></div>
     </div>
   </div>
 </section>
@@ -142,77 +146,58 @@
     await fetchMangas();
     setupFilters();
     setupSort();
-    loadDailyRecommendation();
+    loadTrendingRecs();
   })();
 
-  // ─── Daily Recommendation ──────────────────────────────────────────────────
-  async function loadDailyRecommendation() {
-    const card = document.getElementById('daily-rec-card');
-    const CACHE_KEY = 'skibidi_daily_rec';
+  // ─── Trending Recommendations (Jikan API) ──────────────────────────────────
+  async function loadTrendingRecs() {
+    const grid = document.getElementById('trending-grid');
+    const CACHE_KEY = 'skibidi_trending';
     const today = new Date().toISOString().split('T')[0];
 
     try {
-      // 1. Check Cache
-      const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
-      if (cached && cached.date === today) {
-        renderRec(cached.data);
+      // Check daily cache
+      const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      if (cached && cached.date === today && cached.items) {
+        renderTrending(cached.items);
         return;
       }
 
-      // 2. Fetch Popular Manga from MAL (Jikan)
-      const url = 'https://api.jikan.moe/v4/top/manga?filter=bypopularity&limit=50';
-      console.log('Fetching recommendation from:', url);
-      const res = await fetch(url);
-      const data = await res.json();
-      
-      if (!data || !data.data || data.data.length === 0) {
-        console.warn('Jikan API returned empty data:', data);
-        throw new Error('No data');
-      }
+      // Fetch top manga from Jikan (no auth needed)
+      const res = await fetch('https://api.jikan.moe/v4/top/manga?limit=12&filter=bypopularity');
+      if (!res.ok) throw new Error('Jikan API error: ' + res.status);
+      const json = await res.json();
+      if (!json.data || !json.data.length) throw new Error('Empty response');
 
-      // 3. Pick one based on date seed
-      const seed = today.split('-').reduce((sum, part) => sum + parseInt(part), 0);
-      const index = seed % data.data.length;
-      const manga = data.data[index];
+      const items = json.data.map(m => ({
+        title:  m.title,
+        image:  m.images.webp.large_image_url || m.images.jpg.image_url,
+        score:  m.score,
+        url:    m.url,
+        rank:   m.rank
+      }));
 
-      // 4. Save to Cache
-      const recData = {
-        title: manga.title,
-        image: manga.images.webp.large_image_url,
-        synopsis: manga.synopsis,
-        score: manga.score,
-        url: manga.url,
-        chapters: manga.chapters
-      };
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ date: today, data: recData }));
-      
-      renderRec(recData);
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ date: today, items }));
+      renderTrending(items);
     } catch (err) {
-      console.error('REC_ERROR:', err);
-      document.getElementById('recommendation-section').classList.add('hidden');
+      console.warn('Trending fetch failed:', err.message);
+      document.getElementById('recommendation-section').style.display = 'none';
     }
 
-    function renderRec(m) {
-      card.classList.remove('skeleton'); // In case it was purely a skeleton card
-      card.innerHTML = `
-        <div class="rec-cover">
-          <img src="${m.image}" alt="${m.title}" loading="lazy">
-        </div>
-        <div class="rec-info">
-          <div class="rec-badge">
-            <span style="font-size: 1rem">✨</span> Spotlight Recommendation
+    function renderTrending(items) {
+      grid.innerHTML = items.map(m => `
+        <a href="${m.url}" target="_blank" rel="noopener" class="manga-card" style="text-decoration:none;display:block">
+          <div class="manga-card-cover" style="aspect-ratio:2/3;position:relative">
+            <img src="${m.image}" alt="${m.title}" loading="lazy" style="width:100%;height:100%;object-fit:cover">
+            <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.75);color:#fbbf24;font-size:0.65rem;font-weight:800;padding:2px 6px;border-radius:4px">⭐ ${m.score || 'N/A'}</div>
+            ${m.rank ? '<div style="position:absolute;top:6px;right:6px;background:var(--accent-primary);color:#fff;font-size:0.6rem;font-weight:800;padding:2px 6px;border-radius:4px">#' + m.rank + '</div>' : ''}
           </div>
-          <h2 class="rec-title">${m.title}</h2>
-          <p class="rec-synopsis">${m.synopsis || 'No synopsis available.'}</p>
-          <div class="rec-meta">
-            <div class="rec-score">⭐ ${m.score || 'N/A'}</div>
-            <div class="text-muted" style="font-size: 0.85rem">MAL Rating</div>
-            <a href="${m.url}" target="_blank" class="btn btn-primary" style="margin-left: auto; padding: 10px 20px; font-size: 0.85rem">
-              View on MyAnimeList
-            </a>
+          <div class="manga-card-info" style="padding:8px">
+            <p class="manga-card-title" style="font-size:0.8rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">${m.title}</p>
+            <p style="font-size:0.7rem;color:var(--accent-primary);font-weight:600">MAL Top Pick</p>
           </div>
-        </div>
-      `;
+        </a>
+      `).join('');
     }
   }
 
