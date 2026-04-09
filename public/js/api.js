@@ -62,10 +62,10 @@ function initToasts() {
 
 function showToast(message, type = 'info', duration = 4000) {
   if (!toastContainer) initToasts();
-  const icons = { success: '🌸', error: '💔', info: '✨' };
+  const icons = { success: '✓', error: '✕', info: 'ℹ' };
   const t = document.createElement('div');
   t.className = `toast toast-${type}`;
-  t.innerHTML = `<span style="font-size:1.2rem">${icons[type]}</span> ${message}`;
+  t.innerHTML = `<span style="font-weight:900;margin-right:8px">${icons[type]}</span> ${message}`;
   toastContainer.appendChild(t);
 
   setTimeout(() => {
@@ -110,8 +110,7 @@ async function buildNavbar(activePage = '') {
     <nav class="navbar" role="navigation">
       <div class="navbar-inner">
         <a href="./index.html" class="navbar-logo" id="nav-logo">
-          <span class="logo-icon">🌸</span>
-          <span>SkibidiToiletArchive</span>
+          <span>SkibidiArchive</span>
         </a>
         <div class="navbar-search">
           <span class="search-icon">🔍</span>
@@ -131,7 +130,7 @@ async function buildNavbar(activePage = '') {
                 }
               </div>
               <span>${currentUser.username}</span>
-              ${isAdmin() ? '<span style="font-size:0.68rem;background:linear-gradient(135deg,#f472b6,#a78bfa);color:#fff;padding:2px 8px;border-radius:99px;margin-left:2px;font-weight:800">✦ ADMIN</span>' : ''}
+              ${isAdmin() ? '<span style="font-size:0.62rem;background:var(--accent-primary);color:#fff;padding:1px 6px;border-radius:2px;margin-left:6px;font-weight:900">ADMIN</span>' : ''}
             </div>
             <input type="file" id="avatar-input" accept="image/*" style="display:none" />
             <button class="btn btn-ghost btn-sm" id="logout-btn">Logout</button>

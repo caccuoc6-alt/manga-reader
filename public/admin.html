@@ -3,35 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="SkibidiToiletArchive — Admin Dashboard. Site statistics and management tools." />
-  <title>Admin Dashboard — SkibidiToiletArchive</title>
+  <meta name="description" content="SkibidiArchive — Admin Dashboard. Site statistics and management tools." />
+  <title>Admin Dashboard — SkibidiArchive</title>
   <link rel="stylesheet" href="./css/style.css" />
   <style>
     /* ── Admin-specific design overrides ─────────────────────── */
     .admin-hero {
-      background:
-        radial-gradient(ellipse at 10% 30%, rgba(167,139,250,0.22) 0%, transparent 55%),
-        radial-gradient(ellipse at 90% 70%, rgba(244,114,182,0.18) 0%, transparent 55%),
-        radial-gradient(ellipse at 60% 0%,  rgba(110,231,183,0.10) 0%, transparent 40%),
-        var(--bg-surface);
-      border-bottom: 2px solid var(--border-subtle);
-      padding: 48px 0 40px;
+      background: linear-gradient(to bottom, #1a1a1a, #121212);
+      border-bottom: 1px solid var(--border-default);
+      padding: 48px 0;
       text-align: center;
     }
     .admin-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: linear-gradient(135deg,#a78bfa,#f472b6);
+      background: var(--accent-primary);
       color: #fff;
-      font-size: 0.72rem;
-      font-weight: 900;
-      letter-spacing: 0.1em;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      padding: 4px 14px;
-      border-radius: 99px;
+      padding: 4px 12px;
+      border-radius: 4px;
       margin-bottom: 12px;
-      box-shadow: 0 4px 14px rgba(167,139,250,0.35);
     }
 
     /* ── Overview stat cards ──────────────────────────────────── */
@@ -42,25 +37,12 @@
       margin-bottom: 40px;
     }
     .stat-card {
-      background: var(--bg-card);
-      border: 2px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
       padding: 24px 20px;
       text-align: center;
-      box-shadow: var(--shadow-sm);
       transition: all var(--transition-base);
-      position: relative;
-      overflow: hidden;
-      isolation: isolate;
-    }
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: var(--card-gradient, linear-gradient(135deg, rgba(244,114,182,0.05), rgba(167,139,250,0.05)));
-      pointer-events: none;
-      opacity: 0.12;
-      z-index: -1;
     }
     .stat-card:hover {
       transform: translateY(-6px);
@@ -73,22 +55,18 @@
       filter: drop-shadow(0 2px 6px rgba(244,114,182,0.3));
     }
     .stat-card-value {
-      font-size: 2.2rem;
-      font-weight: 900;
-      font-family: var(--font-title);
-      background: var(--card-gradient, linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-primary);
       line-height: 1;
     }
     .stat-card-label {
-      font-size: 0.78rem;
-      font-weight: 800;
+      font-size: 0.75rem;
+      font-weight: 600;
       color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-top: 4px;
+      letter-spacing: 0.05em;
+      margin-top: 6px;
     }
 
     /* ── Section heading ──────────────────────────────────────── */

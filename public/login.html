@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Login to SkibidiToiletArchive — Access your manga library and reading history." />
-  <title>Login — SkibidiToiletArchive</title>
+  <meta name="description" content="Login to SkibidiArchive — Access your manga library and reading history." />
+  <title>Login — SkibidiArchive</title>
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
@@ -15,8 +15,7 @@
     <!-- Logo -->
     <div class="auth-logo">
       <a href="./index.html" class="navbar-logo" id="logo-link" style="justify-content:center">
-        <span class="logo-icon">🌸</span>
-        <span style="font-size:1.8rem;font-weight:900">SkibidiToiletArchive</span>
+        <span>SkibidiArchive</span>
       </a>
     </div>
 
@@ -25,8 +24,8 @@
 
     <!-- Error Banner -->
     <div id="error-banner" class="hidden" role="alert"
-         style="background:rgba(251,113,133,0.1);border:2px solid var(--error);border-radius:var(--radius-lg);
-                padding:12px 18px;margin-bottom:20px;color:#e11d48;font-size:0.9rem;font-weight:700">
+         style="background:rgba(239,68,68,0.1);border:1px solid var(--error);border-radius:var(--radius-md);
+                padding:12px 18px;margin-bottom:20px;color:var(--error);font-size:0.85rem;font-weight:600">
     </div>
 
     <!-- Login Form -->
@@ -51,7 +50,7 @@
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn" style="margin-top:8px">
+      <button type="submit" class="btn btn-primary btn-full" id="submit-btn" style="margin-top:8px">
         Sign In
       </button>
     </form>
@@ -105,7 +104,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   try {
     const data = await API.post('/api/auth/login', { email, password });
     if (data.token) setToken(data.token);
-    toast.success(`Welcome back, ${data.user.username}! 🌸`);
+    toast.success(`Welcome back, ${data.user.username}!`);
     setTimeout(() => window.location.href = './index.html', 700);
   } catch (err) {
     errBanner.textContent = err.message;
