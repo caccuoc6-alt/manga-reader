@@ -276,7 +276,7 @@ function renderDetailPanel() {
 
         ${(isAdmin() || (currentUser && manga.uploadedBy?._id === currentUser?.id)) ? `
         <div style="margin-top:16px;display:flex;gap:8px">
-          <button class="btn btn-danger btn-sm" id="delete-manga-btn">🗑 Delete Manga</button>
+          <button class="btn btn-danger btn-sm" onclick="openDeleteModal()">🗑 Delete Manga</button>
           <a href="./upload.html" class="btn btn-ghost btn-sm">➕ Add Chapter</a>
         </div>` : ''}
       </div>
@@ -298,11 +298,6 @@ function renderDetailPanel() {
       } catch (err) { toast.error(err.message); }
     });
   });
-
-  // Delete
-  document.getElementById('delete-manga-btn')?.addEventListener('click', () => {
-    document.getElementById('delete-modal').classList.remove('hidden');
-  });
 }
 
 function statusClass(s) {
@@ -310,9 +305,13 @@ function statusClass(s) {
 }
 
 // ─── Delete Manga ─────────────────────────────────────────────────────────────
-document.getElementById('cancel-delete-btn').addEventListener('click', () => {
+window.openDeleteModal = function() {
+  document.getElementById('delete-modal').classList.remove('hidden');
+};
+window.closeDeleteModal = function() {
   document.getElementById('delete-modal').classList.add('hidden');
-});
+};
+document.getElementById('cancel-delete-btn').addEventListener('click', closeDeleteModal);
 document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
   try {
     await API.delete(`/api/manga/${mangaId}`);
