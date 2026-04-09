@@ -219,8 +219,8 @@
     document.getElementById('pr-bookmarks-count').textContent = data.stats.bookmarksCount;
 
     // Grids
-    renderGrid('uploads-grid', data.uploads, 'This user hasn\\'t uploaded any manga yet.');
-    renderGrid('bookmarks-grid', data.bookmarks, 'This user has no public bookmarks.');
+    renderGrid('uploads-grid', data.uploads, "This user hasn't uploaded any manga yet.");
+    renderGrid('bookmarks-grid', data.bookmarks, "This user has no public bookmarks.");
   }
 
   function renderGrid(containerId, mangas, emptyMessage) {
