@@ -160,7 +160,7 @@
       }
 
       // 2. Fetch Popular Manga from MAL (Jikan)
-      const url = `https://api.jikan.moe/v4/top/manga?filter=bypopularity&limit=50
+      const url = 'https://api.jikan.moe/v4/top/manga?filter=bypopularity&limit=50';
       console.log('Fetching recommendation from:', url);
       const res = await fetch(url);
       const data = await res.json();
