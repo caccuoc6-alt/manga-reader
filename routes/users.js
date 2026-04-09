@@ -6,6 +6,14 @@ const express = require('express');
 const router  = express.Router();
 const User    = require('../models/User');
 const Manga   = require('../models/Manga');
+const upload  = require('../middleware/upload');
+
+// ─── Auth guard ───────────────────────────────────────────────────────────────
+const requireAuth = (req, res, next) => {
+  if (!req.userId)
+    return res.status(401).json({ error: 'Unauthorized. Please log in.' });
+  next();
+};
 
 // ─── Strip page arrays for list views (re-used from manga.js logic) ─────────
 function stripPages(manga) {
@@ -29,7 +37,7 @@ router.get('/:id/profile', async (req, res) => {
     // Fetch user public data + populate bookmarks 
     // We do NOT select email or password.
     const user = await User.findById(userId)
-      .select('username profilePicture role createdAt bookmarks')
+      .select('username profilePicture role createdAt bookmarks bio banner')
       .populate({
         path: 'bookmarks',
         populate: { path: 'uploadedBy', select: 'username' } // needed for stripPages
@@ -53,6 +61,8 @@ router.get('/:id/profile', async (req, res) => {
         _id: user._id,
         username: user.username,
         profilePicture: user.profilePicture,
+        banner: user.banner,
+        bio: user.bio,
         role: user.role,
         createdAt: user.createdAt,
       },
@@ -66,6 +76,37 @@ router.get('/:id/profile', async (req, res) => {
   } catch (err) {
     if (err.name === 'CastError') return res.status(404).json({ error: 'Invalid user ID' });
     res.status(500).json({ error: 'Failed to load profile', message: err.message });
+  }
+});
+
+// ─── POST /api/users/profile ───────────────────────────────────────────────────
+router.post('/profile', requireAuth, upload.fields([{ name: 'avatar', maxCount: 1 }, { name: 'banner', maxCount: 1 }]), async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (req.body.bio !== undefined) {
+      if (req.body.bio.trim().length > 300) {
+        return res.status(400).json({ error: 'Bio must be less than 300 characters.' });
+      }
+      user.bio = req.body.bio.trim();
+    }
+    
+    if (req.files?.avatar?.[0]) {
+      user.profilePicture = req.files.avatar[0].path; // Cloudinary secure URL
+    }
+    if (req.files?.banner?.[0]) {
+      user.banner = req.files.banner[0].path; // Cloudinary secure URL
+    }
+
+    await user.save();
+    res.json({ message: 'Profile updated successfully!', user: {
+      profilePicture: user.profilePicture,
+      banner: user.banner,
+      bio: user.bio
+    }});
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update profile', message: err.message });
   }
 });
 

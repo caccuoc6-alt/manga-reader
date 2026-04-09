@@ -105,6 +105,26 @@
     }
     .section-tab:hover { background: var(--bg-elevated); color: var(--text-primary); }
     .section-tab.active { color: var(--accent-primary); background: rgba(244,114,182,0.1); }
+    .edit-profile-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      backdrop-filter: blur(4px);
+      z-index: 10;
+    }
+    .edit-profile-btn:hover { background: rgba(0, 0, 0, 0.7); }
+    .profile-bio {
+      margin-top: 16px;
+      max-width: 600px;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      z-index: 1;
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
@@ -125,15 +145,17 @@
   </div>
 
   <div id="profile-content" class="hidden">
-    <section class="profile-hero">
+    <section class="profile-hero" id="pr-hero">
+      <button class="btn btn-sm edit-profile-btn hidden" id="edit-profile-btn" onclick="openEditModal()">⚙ Edit Profile</button>
       <div class="profile-avatar" id="pr-avatar"></div>
       <h1 class="profile-username">
         <span id="pr-username"></span>
         <span id="pr-badge"></span>
       </h1>
-      <div style="color: var(--text-secondary); font-size: 0.95rem;">
+      <div style="color: var(--text-secondary); font-size: 0.95rem; z-index: 1;">
         Joined <span id="pr-joined" style="font-weight: 600; color: var(--text-primary);"></span>
       </div>
+      <div class="profile-bio" id="pr-bio"></div>
       <div class="profile-stats">
         <div class="profile-stat-box">
           <div class="profile-stat-value" id="pr-uploads-count">0</div>
@@ -162,6 +184,42 @@
     </div>
   </div>
 </main>
+
+<!-- Edit Profile Modal -->
+<div id="edit-profile-modal" class="modal">
+  <div class="modal-box" style="max-width: 500px">
+    <div class="modal-header">
+      <h3>Edit Profile</h3>
+      <button class="modal-close" onclick="closeEditModal()">✖</button>
+    </div>
+    <form id="edit-profile-form">
+      <div class="form-group">
+        <label>Avatar (Leave blank to keep current)</label>
+        <div class="file-input-wrapper">
+          <button type="button" class="btn btn-secondary">Choose Image</button>
+          <input type="file" id="edit-avatar" accept="image/*" />
+          <span class="file-name" id="edit-avatar-name">No file chosen</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Profile Banner (Leave blank to keep current)</label>
+        <div class="file-input-wrapper">
+          <button type="button" class="btn btn-secondary">Choose Image</button>
+          <input type="file" id="edit-banner" accept="image/*" />
+          <span class="file-name" id="edit-banner-name">No file chosen</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Bio (Max 300 chars)</label>
+        <textarea id="edit-bio" class="form-input" rows="4" maxlength="300" placeholder="Tell us about yourself..."></textarea>
+      </div>
+      <div style="text-align: right; margin-top: 20px;">
+        <button type="button" class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="save-profile-btn">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <div id="toast-container"></div>
 <script src="./js/api.js"></script>
@@ -202,19 +260,42 @@
     const u = data.user;
     document.title = `${u.username}'s Profile — SkibidiToiletArchive`;
 
-    // Header
-    document.getElementById('pr-username').textContent = u.username;
-    if (u.profilePicture) {
-      document.getElementById('pr-avatar').innerHTML = `<img src="${u.profilePicture}" alt="${escHtml(u.username)}" />`;
-    } else {
-      document.getElementById('pr-avatar').textContent = u.username[0].toUpperCase();
+    // Edit Button Visibility
+    if (currentUser && currentUser.id === targetUserId) {
+      document.getElementById('edit-profile-btn').classList.remove('hidden');
     }
 
+    // Hero Banner
+    const hero = document.getElementById('pr-hero');
+    if (u.banner) {
+      hero.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)), url('${u.banner}')`;
+      hero.style.backgroundSize = 'cover';
+      hero.style.backgroundPosition = 'center';
+    } else {
+      hero.style.background = ''; // reset to css default
+    }
+
+    // Avatar
+    const avatarEl = document.getElementById('pr-avatar');
+    if (u.profilePicture) {
+      avatarEl.innerHTML = `<img src="${u.profilePicture}" alt="${escHtml(u.username)}" />`;
+    } else {
+      avatarEl.innerHTML = '';
+      avatarEl.textContent = u.username[0].toUpperCase();
+    }
+
+    // Header Details
+    document.getElementById('pr-username').textContent = u.username;
+    
     if (u.role === 'admin') {
       document.getElementById('pr-badge').innerHTML = '<span style="font-size:0.8rem;background:linear-gradient(135deg,#f472b6,#a78bfa);color:#fff;padding:4px 10px;border-radius:99px;font-weight:900;box-shadow:var(--shadow-glow)">ADMIN</span>';
+    } else {
+      document.getElementById('pr-badge').innerHTML = '';
     }
 
     document.getElementById('pr-joined').textContent = formatDate(u.createdAt);
+    document.getElementById('pr-bio').textContent = u.bio || '';
+    
     document.getElementById('pr-uploads-count').textContent = data.stats.uploadsCount;
     document.getElementById('pr-bookmarks-count').textContent = data.stats.bookmarksCount;
 
@@ -238,6 +319,59 @@
     document.getElementById('view-uploads').classList.toggle('hidden', tab !== 'uploads');
     document.getElementById('view-bookmarks').classList.toggle('hidden', tab !== 'bookmarks');
   };
+
+  // ─── Modal Logic ────────────────────────────────────────────────────────────
+  const modal = document.getElementById('edit-profile-modal');
+  
+  window.openEditModal = () => {
+    const u = profileData.user;
+    document.getElementById('edit-bio').value = u.bio || '';
+    document.getElementById('edit-avatar').value = '';
+    document.getElementById('edit-banner').value = '';
+    document.getElementById('edit-avatar-name').textContent = 'No file chosen';
+    document.getElementById('edit-banner-name').textContent = 'No file chosen';
+    modal.classList.add('show');
+  };
+
+  window.closeEditModal = () => {
+    modal.classList.remove('show');
+  };
+
+  document.getElementById('edit-avatar').addEventListener('change', function(e) {
+    document.getElementById('edit-avatar-name').textContent = this.files[0] ? this.files[0].name : 'No file chosen';
+  });
+  document.getElementById('edit-banner').addEventListener('change', function(e) {
+    document.getElementById('edit-banner-name').textContent = this.files[0] ? this.files[0].name : 'No file chosen';
+  });
+
+  document.getElementById('edit-profile-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('save-profile-btn');
+    const avatarFile = document.getElementById('edit-avatar').files[0];
+    const bannerFile = document.getElementById('edit-banner').files[0];
+    const bioText = document.getElementById('edit-bio').value;
+
+    const formData = new FormData();
+    formData.append('bio', bioText);
+    if (avatarFile) formData.append('avatar', avatarFile);
+    if (bannerFile) formData.append('banner', bannerFile);
+
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+      await API.upload('/api/users/profile', formData);
+      toast.success('Profile updated successfully!');
+      closeEditModal();
+      await loadProfile(); // hot reload data onto page
+    } catch (err) {
+      toast.error(err.message || 'Failed to update profile');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+    }
+  });
+
 </script>
 </body>
 </html>
