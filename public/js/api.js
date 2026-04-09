@@ -174,20 +174,29 @@ async function buildNavbar(activePage = '') {
     });
   }
 
-  // Search (debounced)
+  // Search (debounced for home, Enter for other pages)
   const searchInput = document.getElementById('global-search');
   if (searchInput) {
     let timer;
+    
+    // Auto-filter on input for home page
     searchInput.addEventListener('input', (e) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
+      if (activePage === 'home' && typeof onSearch === 'function') {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          onSearch(e.target.value.trim());
+        }, 400);
+      }
+    });
+
+    // Redirect to home on Enter for other pages
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
         const q = e.target.value.trim();
-        if (activePage === 'home' && typeof onSearch === 'function') {
-          onSearch(q);
-        } else if (q) {
+        if (activePage !== 'home' && q) {
           window.location.href = PAGE_BASE + `/index.html?search=${encodeURIComponent(q)}`;
         }
-      }, 400);
+      }
     });
   }
 }
