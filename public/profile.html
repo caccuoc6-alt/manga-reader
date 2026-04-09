@@ -186,34 +186,36 @@
 </main>
 
 <!-- Edit Profile Modal -->
-<div id="edit-profile-modal" class="modal">
-  <div class="modal-box" style="max-width: 500px">
-    <div class="modal-header">
-      <h3>Edit Profile</h3>
-      <button class="modal-close" onclick="closeEditModal()">✖</button>
+<div id="edit-profile-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+      <h3 style="font-size: 1.3rem; font-weight: 900; font-family: var(--font-title); color: var(--text-primary);">Edit Profile</h3>
+      <button onclick="closeEditModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">✖</button>
     </div>
     <form id="edit-profile-form">
       <div class="form-group">
-        <label>Avatar (Leave blank to keep current)</label>
+        <label class="form-label">Avatar (Leave blank to keep current)</label>
         <div class="file-input-wrapper">
-          <button type="button" class="btn btn-secondary">Choose Image</button>
-          <input type="file" id="edit-avatar" accept="image/*" />
-          <span class="file-name" id="edit-avatar-name">No file chosen</span>
+          <input type="file" id="edit-avatar" accept="image/*" class="form-input" style="padding: 8px;" />
+          <div id="preview-avatar-container" class="hidden" style="margin-top: 10px;">
+            <img id="preview-avatar" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-primary);" />
+          </div>
         </div>
       </div>
       <div class="form-group">
-        <label>Profile Banner (Leave blank to keep current)</label>
+        <label class="form-label">Profile Banner (Leave blank to keep current)</label>
         <div class="file-input-wrapper">
-          <button type="button" class="btn btn-secondary">Choose Image</button>
-          <input type="file" id="edit-banner" accept="image/*" />
-          <span class="file-name" id="edit-banner-name">No file chosen</span>
+          <input type="file" id="edit-banner" accept="image/*" class="form-input" style="padding: 8px;" />
+          <div id="preview-banner-container" class="hidden" style="margin-top: 10px;">
+            <img id="preview-banner" style="width: 100%; height: 100px; border-radius: var(--radius-md); object-fit: cover; border: 2px solid var(--accent-primary);" />
+          </div>
         </div>
       </div>
       <div class="form-group">
-        <label>Bio (Max 300 chars)</label>
-        <textarea id="edit-bio" class="form-input" rows="4" maxlength="300" placeholder="Tell us about yourself..."></textarea>
+        <label class="form-label">Bio (Max 300 chars)</label>
+        <textarea id="edit-bio" class="form-input form-textarea" rows="4" maxlength="300" placeholder="Tell us about yourself..."></textarea>
       </div>
-      <div style="text-align: right; margin-top: 20px;">
+      <div style="text-align: right; margin-top: 24px;">
         <button type="button" class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
         <button type="submit" class="btn btn-primary" id="save-profile-btn">Save Changes</button>
       </div>
@@ -328,20 +330,48 @@
     document.getElementById('edit-bio').value = u.bio || '';
     document.getElementById('edit-avatar').value = '';
     document.getElementById('edit-banner').value = '';
-    document.getElementById('edit-avatar-name').textContent = 'No file chosen';
-    document.getElementById('edit-banner-name').textContent = 'No file chosen';
-    modal.classList.add('show');
+    
+    document.getElementById('preview-avatar-container').classList.add('hidden');
+    document.getElementById('preview-banner-container').classList.add('hidden');
+
+    if (u.profilePicture) {
+      document.getElementById('preview-avatar').src = u.profilePicture;
+      document.getElementById('preview-avatar-container').classList.remove('hidden');
+    }
+    if (u.banner) {
+      document.getElementById('preview-banner').src = u.banner;
+      document.getElementById('preview-banner-container').classList.remove('hidden');
+    }
+
+    modal.classList.remove('hidden');
   };
 
   window.closeEditModal = () => {
-    modal.classList.remove('show');
+    modal.classList.add('hidden');
   };
 
   document.getElementById('edit-avatar').addEventListener('change', function(e) {
-    document.getElementById('edit-avatar-name').textContent = this.files[0] ? this.files[0].name : 'No file chosen';
+    const file = this.files[0];
+    const container = document.getElementById('preview-avatar-container');
+    const img = document.getElementById('preview-avatar');
+    if (file) {
+      img.src = URL.createObjectURL(file);
+      container.classList.remove('hidden');
+    } else {
+      container.classList.add('hidden');
+    }
   });
+
   document.getElementById('edit-banner').addEventListener('change', function(e) {
-    document.getElementById('edit-banner-name').textContent = this.files[0] ? this.files[0].name : 'No file chosen';
+    const file = this.files[0];
+    const container = document.getElementById('preview-banner-container');
+    const img = document.getElementById('preview-banner');
+    if (file) {
+      img.src = URL.createObjectURL(file);
+      container.classList.remove('hidden');
+    } else {
+      container.classList.add('hidden');
+    }
   });
 
   document.getElementById('edit-profile-form').addEventListener('submit', async (e) => {
