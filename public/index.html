@@ -160,10 +160,15 @@
       }
 
       // 2. Fetch Popular Manga from MAL (Jikan)
-      const res = await fetch('https://api.jikan.moe/v4/top/manga?filter=bypopularity&limit=50');
+      const url = `https://api.jikan.moe/v4/top/manga?filter=bypopularity&limit=50`;
+      console.log('Fetching recommendation from:', url);
+      const res = await fetch(url);
       const data = await res.json();
       
-      if (!data || !data.data || data.data.length === 0) throw new Error('No data');
+      if (!data || !data.data || data.data.length === 0) {
+        console.warn('Jikan API returned empty data:', data);
+        throw new Error('No data');
+      }
 
       // 3. Pick one based on date seed
       const seed = today.split('-').reduce((sum, part) => sum + parseInt(part), 0);
