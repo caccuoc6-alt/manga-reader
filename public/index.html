@@ -136,6 +136,10 @@
   (async () => {
     await buildNavbar('home');
 
+    // Clear old broken cache keys from previous versions
+    localStorage.removeItem('skibidi_daily_rec');
+    localStorage.removeItem('skibidi_trending');
+
     // Parse URL params
     const params = new URLSearchParams(window.location.search);
     if (params.get('search')) {
@@ -154,36 +158,48 @@
   // ─── Trending Recommendations (Jikan API) ──────────────────────────────────
   async function loadTrendingRecs() {
     const grid = document.getElementById('trending-grid');
-    const CACHE_KEY = 'skibidi_trending';
+    const CACHE_KEY = 'skibidi_trending_v2'; // v2 = cleared old corrupted caches
     const today = new Date().toISOString().split('T')[0];
 
     try {
       // Check daily cache
       const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-      if (cached && cached.date === today && cached.items) {
+      if (cached && cached.date === today && cached.items && cached.items.length) {
         renderTrending(cached.items);
         return;
       }
 
-      // Fetch top manga from Jikan (no auth needed)
-      const res = await fetch('https://api.jikan.moe/v4/top/manga?limit=12&filter=bypopularity');
-      if (!res.ok) throw new Error('Jikan API error: ' + res.status);
-      const json = await res.json();
-      if (!json.data || !json.data.length) throw new Error('Empty response');
+      // Try fetching from Jikan — two endpoint attempts
+      let json = null;
+      const endpoints = [
+        'https://api.jikan.moe/v4/top/manga?limit=12&filter=bypopularity',
+        'https://api.jikan.moe/v4/top/manga?limit=10'
+      ];
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (data && data.data && data.data.length) { json = data; break; }
+        } catch (e) { continue; }
+      }
+
+      if (!json) throw new Error('All Jikan endpoints failed');
 
       const items = json.data.map(m => ({
-        title:  m.title,
-        image:  m.images.webp.large_image_url || m.images.jpg.image_url,
-        score:  m.score,
-        url:    m.url,
-        rank:   m.rank
+        title: m.title,
+        image: (m.images.webp && m.images.webp.large_image_url) || m.images.jpg.image_url,
+        score: m.score,
+        url:   m.url,
+        rank:  m.rank
       }));
 
       localStorage.setItem(CACHE_KEY, JSON.stringify({ date: today, items }));
       renderTrending(items);
     } catch (err) {
       console.warn('Trending fetch failed:', err.message);
-      document.getElementById('recommendation-section').style.display = 'none';
+      // Show a friendly message instead of hiding
+      grid.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;padding:12px 0">Could not load trending manga right now. <a href="https://myanimelist.net/topmanga.php" target="_blank" style="color:var(--accent-primary)">Browse MAL directly →</a></p>';
     }
 
     function renderTrending(items) {
@@ -195,7 +211,7 @@
             ${m.rank ? '<div style="position:absolute;top:6px;right:6px;background:var(--accent-primary);color:#fff;font-size:0.6rem;font-weight:800;padding:2px 6px;border-radius:4px">#' + m.rank + '</div>' : ''}
           </div>
           <div class="manga-card-info" style="padding:8px">
-            <p class="manga-card-title" style="font-size:0.8rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">${m.title}</p>
+            <p style="font-size:0.8rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">${m.title}</p>
             <p style="font-size:0.7rem;color:var(--accent-primary);font-weight:600">MAL Top Pick</p>
           </div>
         </a>
