@@ -121,6 +121,7 @@ async function buildNavbar(activePage = '') {
           <a href="./index.html" class="nav-link ${activePage === 'home' ? 'active' : ''}">Library</a>
           ${isLoggedIn() ? `
             <a href="./upload.html" class="nav-link ${activePage === 'upload' ? 'active' : ''}">Upload</a>
+            ${isAdmin() ? `<a href="./admin.html" class="nav-link ${activePage === 'admin' ? 'active' : ''}" style="color:var(--accent-secondary);font-weight:900">⚙ Admin</a>` : ''}
             <div class="user-badge" id="user-menu-btn" style="cursor:pointer" title="Click to change avatar (${currentUser.email})">
               <div class="user-avatar" id="avatar-trigger" style="overflow:hidden">
                 ${currentUser.profilePicture 
