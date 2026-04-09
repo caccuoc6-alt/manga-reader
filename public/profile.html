@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,13 +22,15 @@
       position: relative;
       overflow: hidden;
     }
+
     .profile-hero::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(244,114,182,0.1), rgba(167,139,250,0.1));
+      background: linear-gradient(135deg, rgba(244, 114, 182, 0.1), rgba(167, 139, 250, 0.1));
       pointer-events: none;
     }
+
     .profile-avatar {
       width: 120px;
       height: 120px;
@@ -45,11 +48,13 @@
       margin-bottom: 20px;
       z-index: 1;
     }
+
     .profile-avatar img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
+
     .profile-username {
       font-size: 2.2rem;
       font-family: var(--font-title);
@@ -61,29 +66,34 @@
       justify-content: center;
       gap: 12px;
     }
+
     .profile-stats {
       display: flex;
       gap: 30px;
       margin-top: 20px;
       z-index: 1;
     }
+
     .profile-stat-box {
       background: var(--bg-body);
       padding: 12px 24px;
       border-radius: var(--radius-lg);
       border: 1px solid var(--border-subtle);
     }
+
     .profile-stat-value {
       font-size: 1.4rem;
       font-weight: 900;
       color: var(--accent-primary);
     }
+
     .profile-stat-label {
       font-size: 0.8rem;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
+
     .section-tabs {
       display: flex;
       justify-content: center;
@@ -92,6 +102,7 @@
       border-bottom: 1px solid var(--border-subtle);
       padding-bottom: 12px;
     }
+
     .section-tab {
       background: none;
       border: none;
@@ -103,8 +114,17 @@
       border-radius: var(--radius-sm);
       transition: all 0.2s;
     }
-    .section-tab:hover { background: var(--bg-elevated); color: var(--text-primary); }
-    .section-tab.active { color: var(--accent-primary); background: rgba(244,114,182,0.1); }
+
+    .section-tab:hover {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+    }
+
+    .section-tab.active {
+      color: var(--accent-primary);
+      background: rgba(244, 114, 182, 0.1);
+    }
+
     .edit-profile-btn {
       position: absolute;
       top: 16px;
@@ -115,7 +135,11 @@
       backdrop-filter: blur(4px);
       z-index: 10;
     }
-    .edit-profile-btn:hover { background: rgba(0, 0, 0, 0.7); }
+
+    .edit-profile-btn:hover {
+      background: rgba(0, 0, 0, 0.7);
+    }
+
     .profile-bio {
       margin-top: 16px;
       max-width: 600px;
@@ -127,281 +151,286 @@
     }
   </style>
 </head>
+
 <body>
 
-<div id="navbar"></div>
+  <div id="navbar"></div>
 
-<main class="container">
-  <div id="profile-loading" style="padding: 100px 0; text-align: center;">
-    <div class="spinner"></div>
-    <div style="margin-top: 16px; color: var(--text-muted);">Loading profile…</div>
-  </div>
+  <main class="container">
+    <div id="profile-loading" style="padding: 100px 0; text-align: center;">
+      <div class="spinner"></div>
+      <div style="margin-top: 16px; color: var(--text-muted);">Loading profile…</div>
+    </div>
 
-  <div id="profile-error" class="hidden empty-state">
-    <div class="empty-state-icon">⚠️</div>
-    <h3>Profile Not Found</h3>
-    <p id="error-message">This user does not exist or has been removed.</p>
-    <a href="./index.html" class="btn btn-primary" style="margin-top: 20px;">Back to Library</a>
-  </div>
+    <div id="profile-error" class="hidden empty-state">
+      <div class="empty-state-icon">⚠️</div>
+      <h3>Profile Not Found</h3>
+      <p id="error-message">This user does not exist or has been removed.</p>
+      <a href="./index.html" class="btn btn-primary" style="margin-top: 20px;">Back to Library</a>
+    </div>
 
-  <div id="profile-content" class="hidden">
-    <section class="profile-hero" id="pr-hero">
-      <button class="btn btn-sm edit-profile-btn hidden" id="edit-profile-btn" onclick="openEditModal()">⚙ Edit Profile</button>
-      <div class="profile-avatar" id="pr-avatar"></div>
-      <h1 class="profile-username">
-        <span id="pr-username"></span>
-        <span id="pr-badge"></span>
-      </h1>
-      <div style="color: var(--text-secondary); font-size: 0.95rem; z-index: 1;">
-        Joined <span id="pr-joined" style="font-weight: 600; color: var(--text-primary);"></span>
-      </div>
-      <div class="profile-bio" id="pr-bio"></div>
-      <div class="profile-stats">
-        <div class="profile-stat-box">
-          <div class="profile-stat-value" id="pr-uploads-count">0</div>
-          <div class="profile-stat-label">Uploads</div>
+    <div id="profile-content" class="hidden">
+      <section class="profile-hero" id="pr-hero">
+        <button class="btn btn-sm edit-profile-btn hidden" id="edit-profile-btn" onclick="openEditModal()">⚙ Edit
+          Profile</button>
+        <div class="profile-avatar" id="pr-avatar"></div>
+        <h1 class="profile-username">
+          <span id="pr-username"></span>
+          <span id="pr-badge"></span>
+        </h1>
+        <div style="color: var(--text-secondary); font-size: 0.95rem; z-index: 1;">
+          Joined <span id="pr-joined" style="font-weight: 600; color: var(--text-primary);"></span>
         </div>
-        <div class="profile-stat-box">
-          <div class="profile-stat-value" id="pr-bookmarks-count">0</div>
-          <div class="profile-stat-label">Bookmarks</div>
-        </div>
-      </div>
-    </section>
-
-    <div class="section-tabs">
-      <button class="section-tab active" id="tab-uploads" onclick="switchTab('uploads')">Uploads</button>
-      <button class="section-tab" id="tab-bookmarks" onclick="switchTab('bookmarks')">Bookmarks</button>
-    </div>
-
-    <!-- Uploads Tab -->
-    <div id="view-uploads">
-      <div class="grid" id="uploads-grid"></div>
-    </div>
-
-    <!-- Bookmarks Tab -->
-    <div id="view-bookmarks" class="hidden">
-      <div class="grid" id="bookmarks-grid"></div>
-    </div>
-  </div>
-</main>
-
-<!-- Edit Profile Modal -->
-<div id="edit-profile-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-      <h3 style="font-size: 1.3rem; font-weight: 900; font-family: var(--font-title); color: var(--text-primary);">Edit Profile</h3>
-      <button onclick="closeEditModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">✖</button>
-    </div>
-    <form id="edit-profile-form">
-      <div class="form-group">
-        <label class="form-label">Avatar (Leave blank to keep current)</label>
-        <div class="file-input-wrapper">
-          <input type="file" id="edit-avatar" accept="image/*" class="form-input" style="padding: 8px;" />
-          <div id="preview-avatar-container" class="hidden" style="margin-top: 10px;">
-            <img id="preview-avatar" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-primary);" />
+        <div class="profile-bio" id="pr-bio"></div>
+        <div class="profile-stats">
+          <div class="profile-stat-box">
+            <div class="profile-stat-value" id="pr-uploads-count">0</div>
+            <div class="profile-stat-label">Uploads</div>
           </div>
+          <div class="profile-stat-box">
+            <div class="profile-stat-value" id="pr-bookmarks-count">0</div>
+            <div class="profile-stat-label">Bookmarks</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-tabs">
+        <button class="section-tab active" id="tab-uploads" onclick="switchTab('uploads')">Uploads</button>
+        <button class="section-tab" id="tab-bookmarks" onclick="switchTab('bookmarks')">Bookmarks</button>
+      </div>
+
+      <!-- Uploads Tab -->
+      <div id="view-uploads">
+        <div class="grid" id="uploads-grid"></div>
+      </div>
+
+      <!-- Bookmarks Tab -->
+      <div id="view-bookmarks" class="hidden">
+        <div class="grid" id="bookmarks-grid"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Edit Profile Modal -->
+  <div id="edit-profile-modal" class="modal-backdrop hidden">
+    <div class="modal" style="max-width: 500px; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h3 style="font-size: 1.4rem; font-weight: 900; font-family: var(--font-title); color: var(--text-primary); margin: 0;">Edit Profile</h3>
+        <button type="button" onclick="closeEditModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">✖</button>
+      </div>
+      <form id="edit-profile-form">
+        <div class="form-group">
+        <label class="form-label">Avatar (Leave blank to keep current)</label>
+        <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+          <label for="edit-avatar" class="btn btn-ghost btn-sm" style="cursor: pointer; margin: 0;">📸 Choose Image</label>
+          <span id="edit-avatar-name" style="font-size: 0.85rem; color: var(--text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">No file chosen</span>
+        </div>
+        <input type="file" id="edit-avatar" accept="image/*" style="display: none;" />
+        <div id="preview-avatar-container" class="hidden" style="margin-top: 12px;">
+          <img id="preview-avatar" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-primary);" />
         </div>
       </div>
       <div class="form-group">
         <label class="form-label">Profile Banner (Leave blank to keep current)</label>
-        <div class="file-input-wrapper">
-          <input type="file" id="edit-banner" accept="image/*" class="form-input" style="padding: 8px;" />
-          <div id="preview-banner-container" class="hidden" style="margin-top: 10px;">
-            <img id="preview-banner" style="width: 100%; height: 100px; border-radius: var(--radius-md); object-fit: cover; border: 2px solid var(--accent-primary);" />
-          </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+          <label for="edit-banner" class="btn btn-ghost btn-sm" style="cursor: pointer; margin: 0;">🖼 Choose Image</label>
+          <span id="edit-banner-name" style="font-size: 0.85rem; color: var(--text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">No file chosen</span>
+        </div>
+        <input type="file" id="edit-banner" accept="image/*" style="display: none;" />
+        <div id="preview-banner-container" class="hidden" style="margin-top: 12px;">
+          <img id="preview-banner" style="width: 100%; height: 90px; border-radius: var(--radius-md); object-fit: cover; border: 2px solid var(--accent-primary);" />
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Bio (Max 300 chars)</label>
-        <textarea id="edit-bio" class="form-input form-textarea" rows="4" maxlength="300" placeholder="Tell us about yourself..."></textarea>
-      </div>
-      <div style="text-align: right; margin-top: 24px;">
-        <button type="button" class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="save-profile-btn">Save Changes</button>
-      </div>
-    </form>
+        <div class="form-group">
+          <label>Bio (Max 300 chars)</label>
+          <textarea id="edit-bio" class="form-input" rows="4" maxlength="300"
+            placeholder="Tell us about yourself..."></textarea>
+        </div>
+        <div style="text-align: right; margin-top: 20px;">
+          <button type="button" class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="save-profile-btn">Save Changes</button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
 
-<div id="toast-container"></div>
-<script src="./js/api.js"></script>
-<script>
-  const urlParams = new URLSearchParams(window.location.search);
-  const targetUserId = urlParams.get('id');
-  
-  let profileData = null;
+  <div id="toast-container"></div>
+  <script src="./js/api.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetUserId = urlParams.get('id');
 
-  if (!targetUserId) {
-    window.location.href = './index.html';
-  }
+    let profileData = null;
 
-  (async () => {
-    await buildNavbar();
-    await loadProfile();
-  })();
-
-  async function loadProfile() {
-    const loadingEl = document.getElementById('profile-loading');
-    const contentEl = document.getElementById('profile-content');
-    const errorEl = document.getElementById('profile-error');
-
-    try {
-      const data = await API.get(`/api/users/${targetUserId}/profile`);
-      profileData = data;
-      renderProfile(data);
-      loadingEl.classList.add('hidden');
-      contentEl.classList.remove('hidden');
-    } catch (err) {
-      loadingEl.classList.add('hidden');
-      errorEl.classList.remove('hidden');
-      document.getElementById('error-message').textContent = err.message || 'Failed to load profile';
-    }
-  }
-
-  function renderProfile(data) {
-    const u = data.user;
-    document.title = `${u.username}'s Profile — SkibidiToiletArchive`;
-
-    // Edit Button Visibility
-    if (currentUser && currentUser.id === targetUserId) {
-      document.getElementById('edit-profile-btn').classList.remove('hidden');
+    if (!targetUserId) {
+      window.location.href = './index.html';
     }
 
-    // Hero Banner
-    const hero = document.getElementById('pr-hero');
-    if (u.banner) {
-      hero.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)), url('${u.banner}')`;
-      hero.style.backgroundSize = 'cover';
-      hero.style.backgroundPosition = 'center';
-    } else {
-      hero.style.background = ''; // reset to css default
+    (async () => {
+      await buildNavbar();
+      await loadProfile();
+    })();
+
+    async function loadProfile() {
+      const loadingEl = document.getElementById('profile-loading');
+      const contentEl = document.getElementById('profile-content');
+      const errorEl = document.getElementById('profile-error');
+
+      try {
+        const data = await API.get(`/api/users/${targetUserId}/profile`);
+        profileData = data;
+        renderProfile(data);
+        loadingEl.classList.add('hidden');
+        contentEl.classList.remove('hidden');
+      } catch (err) {
+        loadingEl.classList.add('hidden');
+        errorEl.classList.remove('hidden');
+        document.getElementById('error-message').textContent = err.message || 'Failed to load profile';
+      }
     }
 
-    // Avatar
-    const avatarEl = document.getElementById('pr-avatar');
-    if (u.profilePicture) {
-      avatarEl.innerHTML = `<img src="${u.profilePicture}" alt="${escHtml(u.username)}" />`;
-    } else {
-      avatarEl.innerHTML = '';
-      avatarEl.textContent = u.username[0].toUpperCase();
+    function renderProfile(data) {
+      const u = data.user;
+      document.title = `${u.username}'s Profile — SkibidiToiletArchive`;
+
+      // Edit Button Visibility
+      if (currentUser && currentUser.id === targetUserId) {
+        document.getElementById('edit-profile-btn').classList.remove('hidden');
+      }
+
+      // Hero Banner
+      const hero = document.getElementById('pr-hero');
+      if (u.banner) {
+        hero.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)), url('${u.banner}')`;
+        hero.style.backgroundSize = 'cover';
+        hero.style.backgroundPosition = 'center';
+      } else {
+        hero.style.background = ''; // reset to css default
+      }
+
+      // Avatar
+      const avatarEl = document.getElementById('pr-avatar');
+      if (u.profilePicture) {
+        avatarEl.innerHTML = `<img src="${u.profilePicture}" alt="${escHtml(u.username)}" />`;
+      } else {
+        avatarEl.innerHTML = '';
+        avatarEl.textContent = u.username[0].toUpperCase();
+      }
+
+      // Header Details
+      document.getElementById('pr-username').textContent = u.username;
+
+      if (u.role === 'admin') {
+        document.getElementById('pr-badge').innerHTML = '<span style="font-size:0.8rem;background:linear-gradient(135deg,#f472b6,#a78bfa);color:#fff;padding:4px 10px;border-radius:99px;font-weight:900;box-shadow:var(--shadow-glow)">ADMIN</span>';
+      } else {
+        document.getElementById('pr-badge').innerHTML = '';
+      }
+
+      document.getElementById('pr-joined').textContent = formatDate(u.createdAt);
+      document.getElementById('pr-bio').textContent = u.bio || '';
+
+      document.getElementById('pr-uploads-count').textContent = data.stats.uploadsCount;
+      document.getElementById('pr-bookmarks-count').textContent = data.stats.bookmarksCount;
+
+      // Grids
+      renderGrid('uploads-grid', data.uploads, "This user hasn't uploaded any manga yet.");
+      renderGrid('bookmarks-grid', data.bookmarks, "This user has no public bookmarks.");
     }
 
-    // Header Details
-    document.getElementById('pr-username').textContent = u.username;
-    
-    if (u.role === 'admin') {
-      document.getElementById('pr-badge').innerHTML = '<span style="font-size:0.8rem;background:linear-gradient(135deg,#f472b6,#a78bfa);color:#fff;padding:4px 10px;border-radius:99px;font-weight:900;box-shadow:var(--shadow-glow)">ADMIN</span>';
-    } else {
-      document.getElementById('pr-badge').innerHTML = '';
+    function renderGrid(containerId, mangas, emptyMessage) {
+      const container = document.getElementById(containerId);
+      if (!mangas || mangas.length === 0) {
+        container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><div class="empty-state-icon">📭</div><p>${emptyMessage}</p></div>`;
+        return;
+      }
+      container.innerHTML = mangas.map(m => mangaCardHTML(m)).join('');
     }
 
-    document.getElementById('pr-joined').textContent = formatDate(u.createdAt);
-    document.getElementById('pr-bio').textContent = u.bio || '';
-    
-    document.getElementById('pr-uploads-count').textContent = data.stats.uploadsCount;
-    document.getElementById('pr-bookmarks-count').textContent = data.stats.bookmarksCount;
+    window.switchTab = (tab) => {
+      document.getElementById('tab-uploads').classList.toggle('active', tab === 'uploads');
+      document.getElementById('tab-bookmarks').classList.toggle('active', tab === 'bookmarks');
+      document.getElementById('view-uploads').classList.toggle('hidden', tab !== 'uploads');
+      document.getElementById('view-bookmarks').classList.toggle('hidden', tab !== 'bookmarks');
+    };
 
-    // Grids
-    renderGrid('uploads-grid', data.uploads, "This user hasn't uploaded any manga yet.");
-    renderGrid('bookmarks-grid', data.bookmarks, "This user has no public bookmarks.");
-  }
+    // ─── Modal Logic ────────────────────────────────────────────────────────────
+    const modal = document.getElementById('edit-profile-modal');
 
-  function renderGrid(containerId, mangas, emptyMessage) {
-    const container = document.getElementById(containerId);
-    if (!mangas || mangas.length === 0) {
-      container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><div class="empty-state-icon">📭</div><p>${emptyMessage}</p></div>`;
-      return;
-    }
-    container.innerHTML = mangas.map(m => mangaCardHTML(m)).join('');
-  }
+    window.openEditModal = () => {
+      const u = profileData.user;
+      document.getElementById('edit-bio').value = u.bio || '';
+      document.getElementById('edit-avatar').value = '';
+      document.getElementById('edit-banner').value = '';
+      document.getElementById('edit-avatar-name').textContent = 'No file chosen';
+      document.getElementById('edit-banner-name').textContent = 'No file chosen';
+      document.getElementById('preview-avatar-container').classList.add('hidden');
+      document.getElementById('preview-banner-container').classList.add('hidden');
+      modal.classList.add('show');
+    };
 
-  window.switchTab = (tab) => {
-    document.getElementById('tab-uploads').classList.toggle('active', tab === 'uploads');
-    document.getElementById('tab-bookmarks').classList.toggle('active', tab === 'bookmarks');
-    document.getElementById('view-uploads').classList.toggle('hidden', tab !== 'uploads');
-    document.getElementById('view-bookmarks').classList.toggle('hidden', tab !== 'bookmarks');
-  };
+    window.closeEditModal = () => {
+      modal.classList.remove('show');
+    };
 
-  // ─── Modal Logic ────────────────────────────────────────────────────────────
-  const modal = document.getElementById('edit-profile-modal');
-  
-  window.openEditModal = () => {
-    const u = profileData.user;
-    document.getElementById('edit-bio').value = u.bio || '';
-    document.getElementById('edit-avatar').value = '';
-    document.getElementById('edit-banner').value = '';
-    
-    document.getElementById('preview-avatar-container').classList.add('hidden');
-    document.getElementById('preview-banner-container').classList.add('hidden');
+    document.getElementById('edit-avatar').addEventListener('change', function(e) {
+      const file = this.files[0];
+      const container = document.getElementById('preview-avatar-container');
+      const img = document.getElementById('preview-avatar');
+      const nameSpan = document.getElementById('edit-avatar-name');
+      if (file) {
+        img.src = URL.createObjectURL(file);
+        container.classList.remove('hidden');
+        nameSpan.textContent = file.name;
+      } else {
+        container.classList.add('hidden');
+        nameSpan.textContent = 'No file chosen';
+      }
+    });
 
-    if (u.profilePicture) {
-      document.getElementById('preview-avatar').src = u.profilePicture;
-      document.getElementById('preview-avatar-container').classList.remove('hidden');
-    }
-    if (u.banner) {
-      document.getElementById('preview-banner').src = u.banner;
-      document.getElementById('preview-banner-container').classList.remove('hidden');
-    }
+    document.getElementById('edit-banner').addEventListener('change', function(e) {
+      const file = this.files[0];
+      const container = document.getElementById('preview-banner-container');
+      const img = document.getElementById('preview-banner');
+      const nameSpan = document.getElementById('edit-banner-name');
+      if (file) {
+        img.src = URL.createObjectURL(file);
+        container.classList.remove('hidden');
+        nameSpan.textContent = file.name;
+      } else {
+        container.classList.add('hidden');
+        nameSpan.textContent = 'No file chosen';
+      }
+    });
 
-    modal.classList.remove('hidden');
-  };
+    document.getElementById('edit-profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('save-profile-btn');
+      const avatarFile = document.getElementById('edit-avatar').files[0];
+      const bannerFile = document.getElementById('edit-banner').files[0];
+      const bioText = document.getElementById('edit-bio').value;
 
-  window.closeEditModal = () => {
-    modal.classList.add('hidden');
-  };
+      const formData = new FormData();
+      formData.append('bio', bioText);
+      if (avatarFile) formData.append('avatar', avatarFile);
+      if (bannerFile) formData.append('banner', bannerFile);
 
-  document.getElementById('edit-avatar').addEventListener('change', function(e) {
-    const file = this.files[0];
-    const container = document.getElementById('preview-avatar-container');
-    const img = document.getElementById('preview-avatar');
-    if (file) {
-      img.src = URL.createObjectURL(file);
-      container.classList.remove('hidden');
-    } else {
-      container.classList.add('hidden');
-    }
-  });
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
 
-  document.getElementById('edit-banner').addEventListener('change', function(e) {
-    const file = this.files[0];
-    const container = document.getElementById('preview-banner-container');
-    const img = document.getElementById('preview-banner');
-    if (file) {
-      img.src = URL.createObjectURL(file);
-      container.classList.remove('hidden');
-    } else {
-      container.classList.add('hidden');
-    }
-  });
+      try {
+        await API.upload('/api/users/profile', formData);
+        toast.success('Profile updated successfully!');
+        closeEditModal();
+        await loadProfile(); // hot reload data onto page
+      } catch (err) {
+        toast.error(err.message || 'Failed to update profile');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+      }
+    });
 
-  document.getElementById('edit-profile-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('save-profile-btn');
-    const avatarFile = document.getElementById('edit-avatar').files[0];
-    const bannerFile = document.getElementById('edit-banner').files[0];
-    const bioText = document.getElementById('edit-bio').value;
-
-    const formData = new FormData();
-    formData.append('bio', bioText);
-    if (avatarFile) formData.append('avatar', avatarFile);
-    if (bannerFile) formData.append('banner', bannerFile);
-
-    btn.disabled = true;
-    btn.textContent = 'Saving...';
-
-    try {
-      await API.upload('/api/users/profile', formData);
-      toast.success('Profile updated successfully!');
-      closeEditModal();
-      await loadProfile(); // hot reload data onto page
-    } catch (err) {
-      toast.error(err.message || 'Failed to update profile');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Save Changes';
-    }
-  });
-
-</script>
+  </script>
 </body>
+
 </html>
