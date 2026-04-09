@@ -51,6 +51,7 @@
       transition: all var(--transition-base);
       position: relative;
       overflow: hidden;
+      isolation: isolate;
     }
     .stat-card::before {
       content: '';
@@ -58,6 +59,8 @@
       inset: 0;
       background: var(--card-gradient, linear-gradient(135deg, rgba(244,114,182,0.05), rgba(167,139,250,0.05)));
       pointer-events: none;
+      opacity: 0.12;
+      z-index: -1;
     }
     .stat-card:hover {
       transform: translateY(-6px);
