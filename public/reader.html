@@ -255,6 +255,9 @@ function renderDetailPanel() {
           <span class="manga-card-badge ${statusClass(manga.status)}" style="position:static;font-size:0.75rem;padding:3px 10px">${manga.status}</span>
           ${tags}
         </div>
+        <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">
+          Uploaded by: <a href="./profile.html?id=${manga.uploadedBy?._id || manga.uploadedBy}" style="color:var(--accent-primary);font-weight:800;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='var(--accent-secondary)'" onmouseout="this.style.color='var(--accent-primary)'">@${escHtml(manga.uploader)}</a>
+        </div>
         <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.7;margin-bottom:16px;max-width:600px">${escHtml(manga.description || 'No description.')}</p>
         <div style="display:flex;gap:24px;flex-wrap:wrap">
           <div class="stat-item"><div class="stat-value">${manga.chapters?.length || 0}</div><div class="stat-label">Chapters</div></div>
@@ -540,14 +543,14 @@ async function loadComments(chapterNumber) {
 
       return `
         <div class="comment-item" id="comment-${c._id}" style="display: flex; gap: 12px; background: var(--bg-card); padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
-          <div class="user-avatar" style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-weight: bold;">
+          <a href="./profile.html?id=${c.user._id}" class="user-avatar" style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-weight: bold; text-decoration: none; color: inherit; cursor: pointer;">
             ${avatarHtml}
-          </div>
+          </a>
           <div style="flex: 1;">
             <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
-              <div style="font-weight: 800; font-size: 0.9rem; color: var(--text-primary); display: flex; align-items: center;">
+              <a href="./profile.html?id=${c.user._id}" style="font-weight: 800; font-size: 0.95rem; color: var(--text-primary); display: flex; align-items: center; text-decoration: none; transition: color 0.15s;" onmouseover="this.style.color='var(--accent-secondary)'" onmouseout="this.style.color='var(--text-primary)'">
                 ${escHtml(c.user.username)} ${userBadge}
-              </div>
+              </a>
               <div style="font-size: 0.75rem; color: var(--text-muted);">
                 ${formatDate(c.createdAt)}
               </div>

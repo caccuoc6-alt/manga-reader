@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="View user profile on SkibidiToiletArchive." />
+  <title>User Profile — SkibidiToiletArchive</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <style>
+    .profile-hero {
+      background: var(--bg-elevated);
+      border-radius: var(--radius-xl);
+      padding: 40px var(--gap-lg);
+      margin: 40px auto;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      border: 1px solid var(--border-subtle);
+      position: relative;
+      overflow: hidden;
+    }
+    .profile-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(244,114,182,0.1), rgba(167,139,250,0.1));
+      pointer-events: none;
+    }
+    .profile-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 4px solid var(--accent-secondary);
+      box-shadow: var(--shadow-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      font-weight: 900;
+      color: var(--text-muted);
+      overflow: hidden;
+      margin-bottom: 20px;
+      z-index: 1;
+    }
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .profile-username {
+      font-size: 2.2rem;
+      font-family: var(--font-title);
+      font-weight: 900;
+      margin-bottom: 8px;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .profile-stats {
+      display: flex;
+      gap: 30px;
+      margin-top: 20px;
+      z-index: 1;
+    }
+    .profile-stat-box {
+      background: var(--bg-body);
+      padding: 12px 24px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+    }
+    .profile-stat-value {
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: var(--accent-primary);
+    }
+    .profile-stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .section-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 30px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 12px;
+    }
+    .section-tab {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s;
+    }
+    .section-tab:hover { background: var(--bg-elevated); color: var(--text-primary); }
+    .section-tab.active { color: var(--accent-primary); background: rgba(244,114,182,0.1); }
+  </style>
+</head>
+<body>
+
+<div id="navbar"></div>
+
+<main class="container">
+  <div id="profile-loading" style="padding: 100px 0; text-align: center;">
+    <div class="spinner"></div>
+    <div style="margin-top: 16px; color: var(--text-muted);">Loading profile…</div>
+  </div>
+
+  <div id="profile-error" class="hidden empty-state">
+    <div class="empty-state-icon">⚠️</div>
+    <h3>Profile Not Found</h3>
+    <p id="error-message">This user does not exist or has been removed.</p>
+    <a href="./index.html" class="btn btn-primary" style="margin-top: 20px;">Back to Library</a>
+  </div>
+
+  <div id="profile-content" class="hidden">
+    <section class="profile-hero">
+      <div class="profile-avatar" id="pr-avatar"></div>
+      <h1 class="profile-username">
+        <span id="pr-username"></span>
+        <span id="pr-badge"></span>
+      </h1>
+      <div style="color: var(--text-secondary); font-size: 0.95rem;">
+        Joined <span id="pr-joined" style="font-weight: 600; color: var(--text-primary);"></span>
+      </div>
+      <div class="profile-stats">
+        <div class="profile-stat-box">
+          <div class="profile-stat-value" id="pr-uploads-count">0</div>
+          <div class="profile-stat-label">Uploads</div>
+        </div>
+        <div class="profile-stat-box">
+          <div class="profile-stat-value" id="pr-bookmarks-count">0</div>
+          <div class="profile-stat-label">Bookmarks</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-tabs">
+      <button class="section-tab active" id="tab-uploads" onclick="switchTab('uploads')">Uploads</button>
+      <button class="section-tab" id="tab-bookmarks" onclick="switchTab('bookmarks')">Bookmarks</button>
+    </div>
+
+    <!-- Uploads Tab -->
+    <div id="view-uploads">
+      <div class="grid" id="uploads-grid"></div>
+    </div>
+
+    <!-- Bookmarks Tab -->
+    <div id="view-bookmarks" class="hidden">
+      <div class="grid" id="bookmarks-grid"></div>
+    </div>
+  </div>
+</main>
+
+<div id="toast-container"></div>
+<script src="./js/api.js"></script>
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetUserId = urlParams.get('id');
+  
+  let profileData = null;
+
+  if (!targetUserId) {
+    window.location.href = './index.html';
+  }
+
+  (async () => {
+    await buildNavbar();
+    await loadProfile();
+  })();
+
+  async function loadProfile() {
+    const loadingEl = document.getElementById('profile-loading');
+    const contentEl = document.getElementById('profile-content');
+    const errorEl = document.getElementById('profile-error');
+
+    try {
+      const data = await API.get(`/api/users/${targetUserId}/profile`);
+      profileData = data;
+      renderProfile(data);
+      loadingEl.classList.add('hidden');
+      contentEl.classList.remove('hidden');
+    } catch (err) {
+      loadingEl.classList.add('hidden');
+      errorEl.classList.remove('hidden');
+      document.getElementById('error-message').textContent = err.message || 'Failed to load profile';
+    }
+  }
+
+  function renderProfile(data) {
+    const u = data.user;
+    document.title = `${u.username}'s Profile — SkibidiToiletArchive`;
+
+    // Header
+    document.getElementById('pr-username').textContent = u.username;
+    if (u.profilePicture) {
+      document.getElementById('pr-avatar').innerHTML = `<img src="${u.profilePicture}" alt="${escHtml(u.username)}" />`;
+    } else {
+      document.getElementById('pr-avatar').textContent = u.username[0].toUpperCase();
+    }
+
+    if (u.role === 'admin') {
+      document.getElementById('pr-badge').innerHTML = '<span style="font-size:0.8rem;background:linear-gradient(135deg,#f472b6,#a78bfa);color:#fff;padding:4px 10px;border-radius:99px;font-weight:900;box-shadow:var(--shadow-glow)">ADMIN</span>';
+    }
+
+    document.getElementById('pr-joined').textContent = formatDate(u.createdAt);
+    document.getElementById('pr-uploads-count').textContent = data.stats.uploadsCount;
+    document.getElementById('pr-bookmarks-count').textContent = data.stats.bookmarksCount;
+
+    // Grids
+    renderGrid('uploads-grid', data.uploads, 'This user hasn\\'t uploaded any manga yet.');
+    renderGrid('bookmarks-grid', data.bookmarks, 'This user has no public bookmarks.');
+  }
+
+  function renderGrid(containerId, mangas, emptyMessage) {
+    const container = document.getElementById(containerId);
+    if (!mangas || mangas.length === 0) {
+      container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><div class="empty-state-icon">📭</div><p>${emptyMessage}</p></div>`;
+      return;
+    }
+    container.innerHTML = mangas.map(m => mangaCardHTML(m)).join('');
+  }
+
+  window.switchTab = (tab) => {
+    document.getElementById('tab-uploads').classList.toggle('active', tab === 'uploads');
+    document.getElementById('tab-bookmarks').classList.toggle('active', tab === 'bookmarks');
+    document.getElementById('view-uploads').classList.toggle('hidden', tab !== 'uploads');
+    document.getElementById('view-bookmarks').classList.toggle('hidden', tab !== 'bookmarks');
+  };
+</script>
+</body>
+</html>
