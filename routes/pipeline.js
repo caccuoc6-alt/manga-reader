@@ -110,4 +110,23 @@ router.post('/batch', requireAdmin, async (req, res) => {
   })();
 });
 
+/**
+ * GET /api/pipeline/logs
+ * Fetches the recent pipeline log file for debugging.
+ */
+router.get('/logs', requireAdmin, async (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  const logPath = path.resolve(__dirname, '..', 'pipeline', 'logs', 'scraper.log');
+  
+  if (fs.existsSync(logPath)) {
+    const logs = fs.readFileSync(logPath, 'utf8');
+    // return last 100 lines
+    const lines = logs.split('\n').slice(-100);
+    res.json({ logs: lines });
+  } else {
+    res.status(404).json({ error: 'No logs found' });
+  }
+});
+
 module.exports = router;

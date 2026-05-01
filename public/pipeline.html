@@ -437,44 +437,39 @@ async function runPipeline() {
 }
 
 function simulateProgress(resp, body, dryRun, startTime) {
-  const phases = [
-    { delay: 1500,  msg: '📡 [Phase 1] Extracting chapter metadata & image URLs…',   cls: 'log-info' },
-    { delay: 5000,  msg: '  ✔ Metadata extracted — check Render logs for page count', cls: 'log-info' },
-    { delay: 7000,  msg: '⬇️  [Phase 2] Downloading & validating images…',            cls: 'log-info' },
-    { delay: 30000, msg: dryRun
-        ? '  ✔ Dry run complete — files staged, upload skipped'
-        : '☁️  [Phase 3a] Uploading pages to Cloudinary…',                            cls: 'log-info' },
-    { delay: dryRun ? 32000 : 60000, msg: dryRun
-        ? '✅ Dry run finished. Check Render logs for full output.'
-        : '🗄️  [Phase 3b] Writing chapter to MongoDB…',                               cls: 'log-info' },
-  ];
-
-  if (!dryRun) {
-    phases.push({ delay: 75000, msg: '✅ Pipeline complete! Refresh the library to see your chapter.', cls: 'log-info' });
-  }
-
-  logLine(`[${ts()}] 💡 Tip: Open Render Dashboard → Logs for the full real-time output`, 'log-dim');
-  logLine('', '');
-
-  let done = false;
-  phases.forEach(({ delay, msg, cls }) => {
-    setTimeout(() => {
-      if (done) return;
-      logLine(`[${ts()}] ${msg}`, cls);
-      if (msg.includes('✅')) {
-        done = true;
-        finishRun(true, startTime, body, dryRun, '?');
+  let pollCount = 0;
+  
+  pollTimer = setInterval(async () => {
+    try {
+      const res = await API.get('/api/pipeline/logs');
+      if (res && res.logs) {
+        // clear and re-render
+        terminal().innerHTML = '';
+        res.logs.forEach(line => {
+          if (line.trim()) logLine(line);
+        });
+        
+        const logsStr = res.logs.join('\n');
+        
+        // Stop polling if we see completion or fatal error
+        if (logsStr.includes('✅ Pipeline completed') || logsStr.includes('✅ Batch complete')) {
+          clearInterval(pollTimer);
+          finishRun(true, startTime, body, dryRun, '?');
+        } else if (logsStr.includes('Fatal pipeline error') || logsStr.includes('Failed to fetch')) {
+          clearInterval(pollTimer);
+          finishRun(false, startTime, body, dryRun, '?');
+        }
       }
-    }, delay);
-  });
-
-  // Safety timeout after 90s
-  setTimeout(() => {
-    if (!done) {
-      logLine(`[${ts()}] ⚠ Still running — check Render logs directly for final status`, 'log-warn');
+    } catch (err) {
+      // ignore
+    }
+    
+    pollCount++;
+    if (pollCount > 100) { // ~5 mins max
+      clearInterval(pollTimer);
       finishRun(null, startTime, body, dryRun, '?');
     }
-  }, 90000);
+  }, 3000);
 }
 
 function finishRun(success, startTime, body, dryRun, pages) {
