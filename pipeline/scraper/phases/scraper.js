@@ -56,6 +56,84 @@ const SITE_STRATEGIES = [
     extract: null, // handled by extractMangaDex()
   },
 
+  // ── nHentai (Cloudflare + Gallery structural mapping) ─────────
+  {
+    hostPattern: /nhentai\.net/i,
+    type: 'playwright_custom',
+    extract: null, // Force playwright
+    async extractPlaywright(page, url) {
+      // url could be /g/xxxxxx/ or /g/xxxxxx/1/
+      const match = url.match(/\/g\/(\d+)/);
+      if (!match) throw new Error("Could not find nHentai gallery ID in URL");
+      const galleryId = match[1];
+
+      // Navigate to the main gallery page to get metadata and all thumbnails
+      if (!url.endsWith(`/g/${galleryId}/`)) {
+        await page.goto(`https://nhentai.net/g/${galleryId}/`, { waitUntil: 'domcontentloaded' });
+        await page.waitForTimeout(3000);
+      }
+
+      // Title
+      const mangaTitle = await page.locator('h1.title .pretty').innerText().catch(() => `nHentai ${galleryId}`);
+
+      // Thumbnails to full images logic:
+      // nHentai thumbnails look like: https://t.nhentai.net/galleries/MEDIA_ID/1t.jpg
+      // Full images look like:        https://i.nhentai.net/galleries/MEDIA_ID/1.jpg
+      // Note: we can just fetch the media_id from the first thumbnail
+      const imageUrls = await page.evaluate(() => {
+        const thumbs = Array.from(document.querySelectorAll('.gallerythumb img'));
+        return thumbs.map((img) => {
+          let src = img.getAttribute('data-src') || img.src;
+          if (src) {
+            // Replace 't.nhentai.net' -> 'i.nhentai.net'
+            src = src.replace('t.nhentai.net', 'i.nhentai.net');
+            // Remove 't' before the extension (e.g. 1t.jpg -> 1.jpg, 2t.png -> 2.png)
+            src = src.replace(/t\.([^.]+)$/, '.$1');
+            return src;
+          }
+          return null;
+        }).filter(Boolean);
+      });
+
+      return {
+        mangaTitle,
+        chapterNumber: 1, // nhentai is single "chapter" per gallery
+        chapterTitle: `Gallery ${galleryId}`,
+        imageUrls
+      };
+    }
+  },
+
+  // ── Mimimoe (Nuxt/Vue CSR + Cloudflare Turnstile) ─────────────
+  {
+    hostPattern: /mimimoe\.moe/i,
+    type: 'playwright_custom',
+    extract: null, // Force playwright
+    async extractPlaywright(page, url) {
+      // It's already on the page and waited for domcontentloaded + timeout in `extractWithPlaywright`.
+      // We just need to scrape the images.
+      
+      const pageTitle = await page.title();
+      // Example title: "Chap 01 - 131287 | Mimi"
+      const { mangaTitle, chapterNumber, chapterTitle } = parseTitle(pageTitle, url);
+
+      const imageUrls = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('img'))
+          .map(img => img.getAttribute('data-src') || img.src)
+          .filter(src => src && src.startsWith('http'))
+          // exclude UI elements
+          .filter(src => !src.includes('Mimi.webp') && !src.includes('zzz.png'));
+      });
+
+      return {
+        mangaTitle: mangaTitle || 'Mimimoe Manga',
+        chapterNumber: chapterNumber || 1,
+        chapterTitle: chapterTitle || 'Chapter 1',
+        imageUrls
+      };
+    }
+  },
+
   // ── Generic: <img> tags inside a reader container ─────────────
   // Works for many sites that render pages as <img> in a wrapper div.
   {
@@ -133,10 +211,10 @@ async function extractChapter(url) {
     });
     html = response.data;
   } catch (err) {
-    // 403/429 → consider escalating to Playwright
-    if (err.response?.status === 403 || err.response?.status === 429) {
-      logger.warn('  HTTP request blocked (403/429). Escalating to headless browser…');
-      return extractWithPlaywright(url);
+    // 403/429 or nhentai/mimimoe custom logic → escalate to Playwright
+    if (err.response?.status === 403 || err.response?.status === 429 || strategy?.type === 'playwright_custom') {
+      logger.warn('  HTTP request blocked (403/429) or custom script required. Escalating to headless browser…');
+      return extractWithPlaywright(url, strategy);
     }
     throw new Error(`Failed to fetch chapter page: ${err.message}`);
   }
@@ -144,10 +222,10 @@ async function extractChapter(url) {
   const $ = cheerio.load(html);
   const result = strategy.extract($, url);
 
-  // If static HTML yields no images, escalate to headless browser
-  if (result.imageUrls.length === 0) {
-    logger.warn('  No images found in static HTML. Site may be CSR. Escalating to Playwright…');
-    return extractWithPlaywright(url);
+  // If static HTML yields no images, or if it was marked as a custom playwright script
+  if (result.imageUrls.length === 0 || strategy?.type === 'playwright_custom') {
+    logger.warn('  No images found in static HTML or site requires JS. Escalating to Playwright…');
+    return extractWithPlaywright(url, strategy);
   }
 
   // Resolve relative URLs
@@ -160,22 +238,25 @@ async function extractChapter(url) {
 }
 
 // ─── Playwright escalation ────────────────────────────────────────
-// Only runs if static HTML extraction fails.
-// Requires: npm install playwright && npx playwright install chromium
-async function extractWithPlaywright(url) {
-  let playwright;
+// Only runs if static HTML extraction fails, or if site has strong Cloudflare.
+// Requires: npm install playwright-extra puppeteer-extra-plugin-stealth
+async function extractWithPlaywright(url, customStrategy = null) {
+  let chromium, stealth;
   try {
-    playwright = require('playwright');
-  } catch {
+    chromium = require('playwright-extra').chromium;
+    stealth = require('puppeteer-extra-plugin-stealth')();
+    chromium.use(stealth);
+  } catch (err) {
     throw new Error(
-      'Playwright is not installed. Install it with:\n' +
-      '  npm install playwright && npx playwright install chromium\n' +
-      'Or add a custom site strategy in pipeline/scraper/phases/scraper.js'
+      'Playwright Stealth is not installed. Install it with:\n' +
+      '  npm install playwright playwright-extra puppeteer-extra-plugin-stealth\n' +
+      '  npx playwright install chromium\n' +
+      `Error details: ${err.message}`
     );
   }
 
-  logger.info('  Launching headless Chromium…');
-  const browser = await playwright.chromium.launch({ headless: true });
+  logger.info('  Launching headless Chromium with Stealth…');
+  const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     userAgent: pickUserAgent(),
     viewport: { width: 1440, height: 900 },
@@ -183,14 +264,22 @@ async function extractWithPlaywright(url) {
   const page = await context.newPage();
 
   try {
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
-    // Wait for images to lazy-load
-    await page.waitForTimeout(2000);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 35000 });
+    await page.waitForTimeout(4000); // Wait for images to lazy-load / Cloudflare challenges
 
-    const html    = await page.content();
-    const $       = cheerio.load(html);
-    const fallback = SITE_STRATEGIES[SITE_STRATEGIES.length - 1]; // generic selector
-    const result  = fallback.extract($, url);
+    let result = { mangaTitle: 'Unknown', chapterNumber: 1, chapterTitle: 'Chapter 1', imageUrls: [] };
+
+    if (customStrategy?.type === 'playwright_custom' && customStrategy.extractPlaywright) {
+      // Use site-specific Playwright injection
+      result = await customStrategy.extractPlaywright(page, url);
+    } else {
+      // Generic fallback
+      const html    = await page.content();
+      const cheerio = require('cheerio');
+      const $       = cheerio.load(html);
+      const fallback = SITE_STRATEGIES[SITE_STRATEGIES.length - 1]; 
+      result  = fallback.extract($, url);
+    }
 
     // If still nothing, try scraping <img> src attributes directly via page.evaluate
     if (result.imageUrls.length === 0) {
