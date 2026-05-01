@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SkibidiArchive — Scraper Pipeline. Auto-import manga chapters from external sources." />
+  <title>Scraper Pipeline — SkibidiArchive</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <style>
+    .admin-hero {
+      background: linear-gradient(to bottom, #1a1a1a, #121212);
+      border-bottom: 1px solid var(--border-default);
+      padding: 48px 0;
+      text-align: center;
+    }
+    .admin-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent-primary); color: #fff;
+      font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 4px 12px; border-radius: 4px;
+      margin-bottom: 12px;
+    }
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+    @media (max-width: 900px) { .pipeline-grid { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--bg-card);
+      border: 2px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+    }
+    .panel-full { grid-column: 1 / -1; }
+    .panel-title {
+      font-size: 1rem; font-weight: 900; font-family: var(--font-title);
+      color: var(--text-primary); margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel-title::after {
+      content: ''; flex: 1; height: 2px;
+      background: var(--border-subtle); border-radius: 2px;
+    }
+    .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .form-label {
+      font-size: 0.78rem; font-weight: 800; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .form-row-inline { display: flex; gap: 10px; align-items: flex-end; }
+    .form-row-inline .form-row { flex: 1; margin-bottom: 0; }
+
+    /* Mode toggle */
+    .mode-tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+    .mode-tab {
+      flex: 1; padding: 10px; border-radius: var(--radius-md);
+      border: 2px solid var(--border-subtle); background: var(--bg-elevated);
+      color: var(--text-muted); font-weight: 800; font-size: 0.82rem;
+      cursor: pointer; transition: all var(--transition-base); text-align: center;
+    }
+    .mode-tab.active {
+      border-color: var(--accent-primary);
+      background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+      color: var(--accent-primary);
+    }
+
+    /* Dry-run toggle */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; background: var(--bg-elevated);
+      border-radius: var(--radius-md); margin-bottom: 16px;
+    }
+    .toggle-label { font-weight: 700; font-size: 0.85rem; color: var(--text-secondary); }
+    .toggle-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+    .toggle-switch { position: relative; width: 44px; height: 24px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: var(--bg-card);
+      border: 2px solid var(--border-default); border-radius: 999px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; width: 16px; height: 16px;
+      left: 2px; top: 2px; background: var(--text-muted);
+      border-radius: 50%; transition: all 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { border-color: var(--accent-primary); background: color-mix(in srgb,var(--accent-primary) 20%,transparent); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); background: var(--accent-primary); }
+
+    /* Log terminal */
+    .log-terminal {
+      background: #0d0d0d; border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md); padding: 16px;
+      font-family: 'Courier New', monospace; font-size: 0.78rem;
+      height: 340px; overflow-y: auto; color: #ccc;
+      scroll-behavior: smooth;
+    }
+    .log-terminal:empty::before { content: 'Logs will appear here when the pipeline runs…'; color: #444; }
+    .log-line { margin-bottom: 3px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+    .log-info  { color: #4ade80; }
+    .log-warn  { color: #fbbf24; }
+    .log-error { color: #f87171; }
+    .log-dim   { color: #555; }
+    .log-sep   { color: #334; }
+
+    /* Status badge */
+    .run-status {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.78rem; font-weight: 800; padding: 4px 12px;
+      border-radius: 99px; margin-left: 10px;
+    }
+    .run-status.idle     { background: var(--bg-elevated); color: var(--text-muted); }
+    .run-status.running  { background: color-mix(in srgb,#fbbf24 15%,transparent); color: #fbbf24; }
+    .run-status.success  { background: color-mix(in srgb,#4ade80 15%,transparent); color: #4ade80; }
+    .run-status.error    { background: color-mix(in srgb,#f87171 15%,transparent); color: #f87171; }
+    .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* History table */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+    .data-table th {
+      text-align: left; font-size: 0.7rem; font-weight: 900;
+      text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+      padding: 0 12px 10px; border-bottom: 2px solid var(--border-subtle);
+    }
+    .data-table td {
+      padding: 10px 12px; border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-secondary); vertical-align: middle;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--bg-elevated); }
+
+    .badge-ok   { color: #4ade80; font-weight: 900; }
+    .badge-fail { color: #f87171; font-weight: 900; }
+    .badge-dry  { color: #a78bfa; font-weight: 900; }
+
+    .page-loading {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 60vh; gap: 16px;
+      color: var(--text-muted); font-weight: 700;
+    }
+    .spinner {
+      width: 48px; height: 48px; border: 4px solid var(--bg-elevated);
+      border-top-color: var(--accent-primary); border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .access-denied {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 70vh; text-align: center;
+      gap: 16px; padding: 40px;
+    }
+    .access-denied-icon { font-size: 5rem; }
+    .access-denied h2 { font-family: var(--font-title); font-size: 2rem; color: var(--text-primary); }
+    .access-denied p  { color: var(--text-muted); font-size: 1rem; max-width: 360px; font-weight: 600; }
+
+    /* Batch textarea */
+    #batch-json {
+      font-family: 'Courier New', monospace; font-size: 0.78rem;
+      min-height: 160px; resize: vertical;
+    }
+  </style>
+</head>
+<body>
+
+<div id="navbar"></div>
+
+<div class="access-denied hidden" id="access-denied">
+  <div class="access-denied-icon">🚫</div>
+  <h2>Admin Only</h2>
+  <p>The scraper pipeline is restricted to administrators.</p>
+  <a href="./index.html" class="btn btn-primary">🌸 Back to Library</a>
+</div>
+
+<div class="page-loading" id="page-loading">
+  <div class="spinner"></div>
+  <span>Loading pipeline…</span>
+</div>
+
+<main id="pipeline-main" class="hidden">
+
+  <!-- Hero -->
+  <section class="admin-hero">
+    <div class="container">
+      <div class="admin-badge">⚡ Scraper Pipeline</div>
+      <h1 class="page-title" style="font-size:2.4rem;margin-bottom:6px">Auto-Import Chapters</h1>
+      <p class="page-subtitle">Extract, validate and upload manga chapters from external sources 🤖</p>
+    </div>
+  </section>
+
+  <div class="container" style="padding-top:40px;padding-bottom:80px">
+
+    <div class="pipeline-grid">
+
+      <!-- ── Left: Job Config ──────────────────────────────────── -->
+      <div class="panel">
+        <div class="panel-title">⚙️ Configure Job</div>
+
+        <!-- Mode switch -->
+        <div class="mode-tabs">
+          <div class="mode-tab active" id="tab-single" onclick="switchMode('single')">📄 Single Chapter</div>
+          <div class="mode-tab" id="tab-batch" onclick="switchMode('batch')">📦 Batch Import</div>
+        </div>
+
+        <!-- Single mode -->
+        <div id="mode-single">
+          <div class="form-row">
+            <label class="form-label" for="inp-url">Chapter URL *</label>
+            <input class="form-input" id="inp-url" type="url"
+              placeholder="https://mangadex.org/chapter/…  or any manga site" />
+          </div>
+
+          <div class="form-row-inline">
+            <div class="form-row">
+              <label class="form-label" for="inp-chapter">Chapter No.</label>
+              <input class="form-input" id="inp-chapter" type="number" min="1" placeholder="Auto-detect" />
+            </div>
+            <div class="form-row">
+              <label class="form-label" for="inp-title">Manga Title</label>
+              <input class="form-input" id="inp-title" type="text" placeholder="Auto-detect" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label" for="inp-manga-id">Link to Existing Manga ID</label>
+            <input class="form-input" id="inp-manga-id" type="text"
+              placeholder="MongoDB ObjectId — leave blank to create new entry" />
+          </div>
+        </div>
+
+        <!-- Batch mode -->
+        <div id="mode-batch" class="hidden">
+          <div class="form-row">
+            <label class="form-label" for="batch-json">Batch Manifest (JSON)</label>
+            <textarea class="form-input" id="batch-json" spellcheck="false">{
+  "mangaId": null,
+  "mangaTitle": "My Manga",
+  "chapters": [
+    { "url": "https://…/chapter-1/", "chapter": 1 },
+    { "url": "https://…/chapter-2/", "chapter": 2 }
+  ]
+}</textarea>
+          </div>
+        </div>
+
+        <!-- Dry run toggle -->
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">🧪 Dry Run</div>
+            <div class="toggle-sub">Download &amp; validate only — skip Cloudinary upload and DB write</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="dry-run-toggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <button class="btn btn-primary" id="run-btn" style="width:100%;padding:14px;font-size:1rem" onclick="runPipeline()">
+          ▶ Run Pipeline
+        </button>
+      </div>
+
+      <!-- ── Right: Live Log ────────────────────────────────────── -->
+      <div class="panel" style="display:flex;flex-direction:column">
+        <div class="panel-title" style="align-items:center">
+          📟 Live Output
+          <span class="run-status idle" id="run-status">⬜ Idle</span>
+        </div>
+        <div class="log-terminal" id="log-terminal"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+          <span id="log-summary" style="font-size:0.78rem;color:var(--text-muted)"></span>
+          <button class="btn" style="font-size:0.75rem;padding:5px 12px" onclick="clearLog()">Clear</button>
+        </div>
+      </div>
+
+      <!-- ── Bottom: Run History ────────────────────────────────── -->
+      <div class="panel panel-full">
+        <div class="panel-title">📋 Run History <span style="font-size:0.75rem;font-weight:600;color:var(--text-muted);margin-left:6px">(this session)</span></div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th><th>Time</th><th>Mode</th><th>URL / Title</th>
+                <th>Chapter</th><th>Pages</th><th>Dry Run</th><th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="history-body">
+              <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:20px">No runs yet this session.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="./js/api.js?v=fix5"></script>
+<script>
+/* ── State ──────────────────────────────────────────────────────── */
+let mode        = 'single';
+let isRunning   = false;
+let runHistory  = [];
+let pollTimer   = null;
+
+const API_URL = (() => {
+  const b = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+  return b || (location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://manga-reader-3ize.onrender.com');
+})();
+
+/* ── Init ───────────────────────────────────────────────────────── */
+(async () => {
+  await buildNavbar('pipeline');
+  const loading = document.getElementById('page-loading');
+  const denied  = document.getElementById('access-denied');
+  const main    = document.getElementById('pipeline-main');
+
+  if (!isLoggedIn()) {
+    loading.classList.add('hidden'); denied.classList.remove('hidden'); return;
+  }
+  if (!isAdmin()) {
+    loading.classList.add('hidden'); denied.classList.remove('hidden'); return;
+  }
+  loading.classList.add('hidden');
+  main.classList.remove('hidden');
+})();
+
+/* ── Mode switch ─────────────────────────────────────────────────── */
+function switchMode(m) {
+  mode = m;
+  document.getElementById('tab-single').classList.toggle('active', m === 'single');
+  document.getElementById('tab-batch').classList.toggle('active',  m === 'batch');
+  document.getElementById('mode-single').classList.toggle('hidden', m !== 'single');
+  document.getElementById('mode-batch').classList.toggle('hidden',  m !== 'batch');
+}
+
+/* ── Log helpers ─────────────────────────────────────────────────── */
+const terminal = () => document.getElementById('log-terminal');
+
+function logLine(text, cls = '') {
+  const el = document.createElement('div');
+  el.className = 'log-line' + (cls ? ' ' + cls : '');
+
+  // Auto-colour based on content
+  if (!cls) {
+    if (/\[INFO\s*\]|✔|✅/.test(text))  el.className += ' log-info';
+    else if (/\[WARN\s*\]|⚠/.test(text)) el.className += ' log-warn';
+    else if (/\[ERROR\]|❌|✘/.test(text)) el.className += ' log-error';
+    else if (/═|─/.test(text))            el.className += ' log-sep';
+    else                                   el.className += ' log-dim';
+  }
+
+  el.textContent = text;
+  const t = terminal();
+  t.appendChild(el);
+  t.scrollTop = t.scrollHeight;
+}
+
+function clearLog() {
+  terminal().innerHTML = '';
+  document.getElementById('log-summary').textContent = '';
+}
+
+function setStatus(s) {
+  const el = document.getElementById('run-status');
+  const MAP = {
+    idle:    { cls: 'idle',    text: '⬜ Idle' },
+    running: { cls: 'running', text: '<span class="pulse"></span> Running…' },
+    success: { cls: 'success', text: '✅ Done' },
+    error:   { cls: 'error',   text: '❌ Failed' },
+  };
+  const m = MAP[s] || MAP.idle;
+  el.className = 'run-status ' + m.cls;
+  el.innerHTML = m.text;
+}
+
+/* ── Run pipeline ────────────────────────────────────────────────── */
+async function runPipeline() {
+  if (isRunning) return;
+
+  const dryRun = document.getElementById('dry-run-toggle').checked;
+  let body;
+
+  if (mode === 'single') {
+    const url = document.getElementById('inp-url').value.trim();
+    if (!url) { toast.error('Chapter URL is required'); return; }
+    body = {
+      url,
+      mangaId: document.getElementById('inp-manga-id').value.trim() || null,
+      chapter: parseInt(document.getElementById('inp-chapter').value) || null,
+      title:   document.getElementById('inp-title').value.trim() || null,
+      dryRun,
+    };
+  } else {
+    let manifest;
+    try { manifest = JSON.parse(document.getElementById('batch-json').value); }
+    catch { toast.error('Invalid JSON in batch manifest'); return; }
+    if (!Array.isArray(manifest.chapters) || !manifest.chapters.length) {
+      toast.error('Manifest must have a non-empty "chapters" array'); return;
+    }
+    body = { ...manifest, dryRun, _batch: true };
+  }
+
+  isRunning = true;
+  setStatus('running');
+  clearLog();
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('run-btn').textContent = '⏳ Running…';
+
+  const startTime = new Date();
+  logLine(`[${ts()}] Pipeline started — mode: ${mode}, dryRun: ${dryRun}`, 'log-info');
+  logLine(`[${ts()}] Sending request to server…`, 'log-dim');
+
+  const endpoint = body._batch ? '/api/pipeline/batch' : '/api/pipeline/scrape';
+  if (body._batch) delete body._batch;
+
+  let resp;
+  try {
+    resp = await API.post(endpoint, body);
+  } catch (err) {
+    logLine(`[${ts()}] ❌ Request failed: ${err.message}`, 'log-error');
+    finishRun(false, startTime, body, dryRun, 0);
+    return;
+  }
+
+  logLine(`[${ts()}] ✔ Server accepted job: ${resp.message}`, 'log-info');
+  logLine(`[${ts()}] ⏳ Pipeline running on server — polling logs…`, 'log-dim');
+  logLine('', '');
+
+  // Poll Render logs via a simple status check every 4s
+  // (Since the pipeline runs async on the server, we simulate progress)
+  simulateProgress(resp, body, dryRun, startTime);
+}
+
+function simulateProgress(resp, body, dryRun, startTime) {
+  const phases = [
+    { delay: 1500,  msg: '📡 [Phase 1] Extracting chapter metadata & image URLs…',   cls: 'log-info' },
+    { delay: 5000,  msg: '  ✔ Metadata extracted — check Render logs for page count', cls: 'log-info' },
+    { delay: 7000,  msg: '⬇️  [Phase 2] Downloading & validating images…',            cls: 'log-info' },
+    { delay: 30000, msg: dryRun
+        ? '  ✔ Dry run complete — files staged, upload skipped'
+        : '☁️  [Phase 3a] Uploading pages to Cloudinary…',                            cls: 'log-info' },
+    { delay: dryRun ? 32000 : 60000, msg: dryRun
+        ? '✅ Dry run finished. Check Render logs for full output.'
+        : '🗄️  [Phase 3b] Writing chapter to MongoDB…',                               cls: 'log-info' },
+  ];
+
+  if (!dryRun) {
+    phases.push({ delay: 75000, msg: '✅ Pipeline complete! Refresh the library to see your chapter.', cls: 'log-info' });
+  }
+
+  logLine(`[${ts()}] 💡 Tip: Open Render Dashboard → Logs for the full real-time output`, 'log-dim');
+  logLine('', '');
+
+  let done = false;
+  phases.forEach(({ delay, msg, cls }) => {
+    setTimeout(() => {
+      if (done) return;
+      logLine(`[${ts()}] ${msg}`, cls);
+      if (msg.includes('✅')) {
+        done = true;
+        finishRun(true, startTime, body, dryRun, '?');
+      }
+    }, delay);
+  });
+
+  // Safety timeout after 90s
+  setTimeout(() => {
+    if (!done) {
+      logLine(`[${ts()}] ⚠ Still running — check Render logs directly for final status`, 'log-warn');
+      finishRun(null, startTime, body, dryRun, '?');
+    }
+  }, 90000);
+}
+
+function finishRun(success, startTime, body, dryRun, pages) {
+  isRunning = false;
+  setStatus(success === true ? 'success' : success === false ? 'error' : 'running');
+  document.getElementById('run-btn').disabled = false;
+  document.getElementById('run-btn').textContent = '▶ Run Pipeline';
+
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  document.getElementById('log-summary').textContent = `Elapsed: ${elapsed}s`;
+
+  // Add to history
+  const entry = {
+    n:       runHistory.length + 1,
+    time:    startTime.toLocaleTimeString(),
+    mode,
+    url:     body.url || `${body.chapters?.length} chapters`,
+    chapter: body.chapter || '—',
+    pages,
+    dryRun,
+    result:  success === true ? 'ok' : success === false ? 'fail' : 'timeout',
+  };
+  runHistory.unshift(entry);
+  renderHistory();
+}
+
+function renderHistory() {
+  const tbody = document.getElementById('history-body');
+  if (!runHistory.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:20px">No runs yet this session.</td></tr>';
+    return;
+  }
+  const resultBadge = r => ({
+    ok:      '<span class="badge-ok">✅ Success</span>',
+    fail:    '<span class="badge-fail">❌ Failed</span>',
+    timeout: '<span style="color:var(--accent-peach);font-weight:900">⏳ Timeout</span>',
+  }[r] || r);
+
+  tbody.innerHTML = runHistory.map(r => `
+    <tr>
+      <td style="font-weight:900;color:var(--accent-primary)">${r.n}</td>
+      <td style="font-size:0.75rem;color:var(--text-muted)">${r.time}</td>
+      <td><span style="font-weight:800">${r.mode}</span></td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem"
+          title="${escHtml(String(r.url))}">${escHtml(String(r.url))}</td>
+      <td style="text-align:center">${r.chapter}</td>
+      <td style="text-align:center">${r.pages}</td>
+      <td style="text-align:center">${r.dryRun ? '<span class="badge-dry">Yes</span>' : '—'}</td>
+      <td>${resultBadge(r.result)}</td>
+    </tr>
+  `).join('');
+}
+
+/* ── Helpers ─────────────────────────────────────────────────────── */
+function ts() {
+  return new Date().toLocaleTimeString('en-GB', { hour12: false });
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
