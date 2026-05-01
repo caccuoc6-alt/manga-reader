@@ -257,9 +257,23 @@
           </label>
         </div>
 
-        <button class="btn btn-primary" id="run-btn" style="width:100%;padding:14px;font-size:1rem" onclick="runPipeline()">
-          ▶ Run Pipeline
-        </button>
+        <!-- Warning for protected sites -->
+        <div id="protected-warning" class="hidden" style="margin-bottom: 16px; padding: 12px; background: color-mix(in srgb, var(--accent-peach) 15%, transparent); border: 1px solid var(--accent-peach); border-radius: var(--radius-md); display: flex; gap: 10px; align-items: center;">
+          <span style="font-size: 1.2rem;">⚠️</span>
+          <div style="font-size: 0.75rem; color: var(--accent-peach); line-height: 1.3;">
+            <strong style="display:block;margin-bottom:2px">Protected Site Detected</strong>
+            This site blocks datacenter IPs. The "Run Pipeline" button below will likely fail on Render. Please use <strong>Local Mode</strong> instead.
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" id="run-btn" style="flex:2;padding:14px;font-size:0.9rem" onclick="runPipeline()">
+            ▶ Run Pipeline
+          </button>
+          <button class="btn btn-ghost" id="local-btn" style="flex:1;padding:14px;font-size:0.8rem;border:2px dashed var(--border-default)" onclick="copyLocalCommand()">
+            📋 Local Mode
+          </button>
+        </div>
       </div>
 
       <!-- ── Right: Live Log ────────────────────────────────────── -->
@@ -327,7 +341,40 @@ const API_URL = (() => {
   }
   loading.classList.add('hidden');
   main.classList.remove('hidden');
+
+  // Watch URL input for protected sites
+  document.getElementById('inp-url').addEventListener('input', (e) => {
+    const url = e.target.value.toLowerCase();
+    const isProtected = /nhentai|mimimoe|hitomi|exhentai/.test(url);
+    document.getElementById('protected-warning').classList.toggle('hidden', !isProtected);
+  });
 })();
+
+/* ── Local Mode: Copy Command ────────────────────────────────────── */
+function copyLocalCommand() {
+  const url = document.getElementById('inp-url').value.trim();
+  if (!url) { toast.error('Enter a URL first'); return; }
+
+  const dryRun = document.getElementById('dry-run-toggle').checked;
+  const mangaId = document.getElementById('inp-manga-id').value.trim();
+  const chapter = document.getElementById('inp-chapter').value;
+  const title = document.getElementById('inp-title').value.trim();
+
+  let cmd = `node pipeline/scraper/index.js --url "${url}"`;
+  if (mangaId) cmd += ` --manga-id "${mangaId}"`;
+  if (chapter) cmd += ` --chapter ${chapter}`;
+  if (title)   cmd += ` --title "${title}"`;
+  if (dryRun)  cmd += ` --dry-run`;
+
+  navigator.clipboard.writeText(cmd).then(() => {
+    toast.success('CLI command copied to clipboard! 📋');
+    logLine(`[${ts()}] Generated local command:`, 'log-info');
+    logLine(cmd, 'log-dim');
+    logLine(`Paste this into your PC terminal to run.`, 'log-dim');
+  }).catch(() => {
+    toast.error('Failed to copy. Command: ' + cmd);
+  });
+}
 
 /* ── Mode switch ─────────────────────────────────────────────────── */
 function switchMode(m) {
