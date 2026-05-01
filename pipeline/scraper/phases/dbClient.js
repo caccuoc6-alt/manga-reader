@@ -24,10 +24,12 @@ const logger   = require('../utils/logger');
 const Manga = require('../../../models/Manga');
 const User  = require('../../../models/User');
 
-let _connected = false;
+let _weConnected = false;
 
 async function connect() {
-  if (_connected) return;
+  if (mongoose.connection.readyState === 1) return; // Already connected by Express
+  if (_weConnected) return;
+  
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     throw new Error(
@@ -37,14 +39,14 @@ async function connect() {
     );
   }
   await mongoose.connect(uri);
-  _connected = true;
-  logger.debug('  MongoDB connected');
+  _weConnected = true;
+  logger.debug('  MongoDB connected by pipeline');
 }
 
 async function disconnect() {
-  if (_connected) {
+  if (_weConnected) {
     await mongoose.disconnect();
-    _connected = false;
+    _weConnected = false;
   }
 }
 
