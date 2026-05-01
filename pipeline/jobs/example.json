@@ -1,0 +1,9 @@
+{
+  "mangaId": null,
+  "mangaTitle": "My Example Manga",
+  "chapters": [
+    { "url": "https://example-manga-site.com/manga/my-example-manga/chapter-1/", "chapter": 1 },
+    { "url": "https://example-manga-site.com/manga/my-example-manga/chapter-2/", "chapter": 2 },
+    { "url": "https://example-manga-site.com/manga/my-example-manga/chapter-3/", "chapter": 3 }
+  ]
+}
