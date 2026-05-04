@@ -68,12 +68,15 @@ router.post('/register', async (req, res) => {
 // ─── POST /api/auth/login ──────────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ error: 'Email/Username and password are required' });
+    // We expect 'username' from the client, though it might contain an email address
+    const { username, password } = req.body;
+    // We fall back to checking req.body.email just in case old clients are cached
+    const identifier = username || req.body.email;
+    
+    if (!identifier || !password)
+      return res.status(400).json({ error: 'Username/Email and password are required' });
 
-    // 'email' variable might contain a username.
-    const loginIdentifier = email.trim().toLowerCase();
+    const loginIdentifier = identifier.trim().toLowerCase();
     
     const user = await User.findOne({
       $or: [
