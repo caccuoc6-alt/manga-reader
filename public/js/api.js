@@ -16,9 +16,17 @@ const PAGE_BASE = window.location.hostname === 'caccuoc6-alt.github.io'
 
 // ─── JWT token helpers ───────────────────────────────────────────────────────
 const TOKEN_KEY = 'sta_jwt'; // SkibidiToiletArchive JWT
-function getToken()        { return localStorage.getItem(TOKEN_KEY); }
-function setToken(t)       { localStorage.setItem(TOKEN_KEY, t); }
-function clearToken()      { localStorage.removeItem(TOKEN_KEY); }
+function getToken()        { return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY); }
+function setToken(t, remember = true) {
+  if (remember) {
+    localStorage.setItem(TOKEN_KEY, t);
+    sessionStorage.removeItem(TOKEN_KEY);
+  } else {
+    sessionStorage.setItem(TOKEN_KEY, t);
+    localStorage.removeItem(TOKEN_KEY);
+  }
+}
+function clearToken()      { localStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(TOKEN_KEY); }
 
 // ─── Base fetch wrapper ─────────────────────────────────────────────────────
 const API = {

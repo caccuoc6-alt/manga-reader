@@ -70,9 +70,17 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password)
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({ error: 'Email/Username and password are required' });
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    // 'email' variable might contain a username.
+    const loginIdentifier = email.trim().toLowerCase();
+    
+    const user = await User.findOne({
+      $or: [
+        { email: loginIdentifier },
+        { username: { $regex: new RegExp('^' + loginIdentifier + '$', 'i') } }
+      ]
+    });
     if (!user) return res.status(401).json({ error: 'Invalid email or password' });
 
     const match = await user.comparePassword(password);

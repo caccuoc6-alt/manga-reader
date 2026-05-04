@@ -127,6 +127,23 @@ document.getElementById('password').addEventListener('input', (e) => {
   bar.style.background = lv.color;
   txt.textContent = lv.label;
   txt.style.color  = lv.color;
+  
+  // Re-check confirm password if it's already filled
+  const confirm = document.getElementById('confirm-password');
+  if (confirm.value) {
+    confirm.dispatchEvent(new Event('input'));
+  }
+});
+
+// Real-time confirm password validation
+document.getElementById('confirm-password').addEventListener('input', (e) => {
+  const pw = document.getElementById('password').value;
+  const val = e.target.value;
+  if (val && pw !== val) {
+    e.target.style.borderColor = 'var(--error)';
+  } else {
+    e.target.style.borderColor = '';
+  }
 });
 
 // Password toggle

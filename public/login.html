@@ -31,9 +31,9 @@
     <!-- Login Form -->
     <form id="login-form" novalidate>
       <div class="form-group">
-        <label class="form-label" for="email">Email Address</label>
-        <input class="form-input" type="email" id="email" name="email"
-               placeholder="you@example.com" required autocomplete="email" />
+        <label class="form-label" for="email">Email or Username</label>
+        <input class="form-input" type="text" id="email" name="email"
+               placeholder="you@example.com or username" required autocomplete="username" />
       </div>
 
       <div class="form-group">
@@ -48,6 +48,11 @@
             👁
           </button>
         </div>
+      </div>
+
+      <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <input type="checkbox" id="remember-me" checked style="accent-color:var(--accent-primary);width:16px;height:16px;cursor:pointer" />
+        <label for="remember-me" style="font-size:0.85rem;color:var(--text-secondary);cursor:pointer;user-select:none">Remember me for 30 days</label>
       </div>
 
       <button type="submit" class="btn btn-primary btn-full" id="submit-btn" style="margin-top:8px">
@@ -103,7 +108,8 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 
   try {
     const data = await API.post('/api/auth/login', { email, password });
-    if (data.token) setToken(data.token);
+    const remember = document.getElementById('remember-me').checked;
+    if (data.token) setToken(data.token, remember);
     toast.success(`Welcome back, ${data.user.username}!`);
     setTimeout(() => window.location.href = './index.html', 700);
   } catch (err) {
