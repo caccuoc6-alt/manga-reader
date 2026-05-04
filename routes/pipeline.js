@@ -117,7 +117,7 @@ router.post('/batch', requireAdmin, async (req, res) => {
 router.get('/logs', requireAdmin, async (req, res) => {
   const fs = require('fs');
   const path = require('path');
-  const logPath = path.resolve(__dirname, '..', 'pipeline', 'logs', 'scraper.log');
+  const logPath = path.resolve(__dirname, '..', 'pipeline', 'logs', 'pipeline.log');
   
   if (fs.existsSync(logPath)) {
     const logs = fs.readFileSync(logPath, 'utf8');
