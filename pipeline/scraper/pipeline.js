@@ -85,6 +85,17 @@ async function runPipeline(opts) {
 
   logger.info(`  ✔ Uploaded ${uploadedPages.length} pages`);
 
+  // Upload cover if we have one and we might be creating a new manga
+  let uploadedCoverUrl = null;
+  if (scraped.mangaCoverUrl && !mangaId) {
+    logger.info('\n🖼️  [Phase 3a] Uploading cover image to Cloudinary…');
+    uploadedCoverUrl = await uploader.uploadUrl(
+      scraped.mangaCoverUrl, 
+      `skibiditoiletarchive/${slug}/cover`
+    );
+    if (uploadedCoverUrl) logger.info(`  ✔ Uploaded cover image`);
+  }
+
   // ── Phase 3b: Create/Update database entry ────────────────────
   logger.info('\n🗄️  [Phase 3b] Writing chapter to database…');
   const result = await dbClient.ingestChapter({
@@ -93,6 +104,10 @@ async function runPipeline(opts) {
     chapterNumber: chapterNum,
     chapterTitle,
     pages: uploadedPages,
+    coverImage: uploadedCoverUrl || scraped.mangaCoverUrl,
+    description: scraped.mangaDescription,
+    author: scraped.mangaAuthor,
+    genres: scraped.mangaGenres,
   });
 
   logger.info(`  ✔ Chapter saved — Manga ID: ${result.mangaId}`);

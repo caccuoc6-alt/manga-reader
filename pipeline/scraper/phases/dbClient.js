@@ -61,7 +61,17 @@ async function disconnect() {
  * @param {Array}   opts.pages             - [{filename, originalName, url}]
  * @returns {Promise<{mangaId: string, chapterNumber: number}>}
  */
-async function ingestChapter({ mangaId, mangaTitle, chapterNumber, chapterTitle, pages }) {
+async function ingestChapter({ 
+  mangaId, 
+  mangaTitle, 
+  chapterNumber, 
+  chapterTitle, 
+  pages,
+  coverImage,
+  description,
+  author,
+  genres
+}) {
   await connect();
 
   try {
@@ -94,9 +104,10 @@ async function ingestChapter({ mangaId, mangaTitle, chapterNumber, chapterTitle,
 
       manga = new Manga({
         title:       mangaTitle,
-        description: `Imported via pipeline from external source.`,
-        author:      'Unknown',
-        genres:      [],
+        description: description || `Imported via pipeline from external source.`,
+        author:      author || 'Unknown',
+        genres:      genres || [],
+        coverImage:  coverImage || null,
         status:      'ongoing',
         uploadedBy:  pipelineUserId,
         chapters:    [{

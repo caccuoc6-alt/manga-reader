@@ -396,6 +396,10 @@ async function extractMimimoe(chapterUrl) {
   // If we have the manga_id, fetch the manga title
   const resolvedMangaId = mangaId || info.manga_id;
   let mangaTitle = chapterTitle; // fallback
+  let mangaCoverUrl = null;
+  let mangaDescription = null;
+  let mangaAuthor = null;
+  let mangaGenres = [];
 
   if (resolvedMangaId) {
     try {
@@ -414,6 +418,11 @@ async function extractMimimoe(chapterUrl) {
         || mangaData.info?.title
         || mangaData.info?.name
         || mangaTitle;
+        
+      mangaCoverUrl = mangaData.cover_url || null;
+      mangaDescription = mangaData.description || null;
+      mangaAuthor = mangaData.authors?.map(a => a.name).join(', ') || null;
+      mangaGenres = mangaData.genres?.map(g => g.name) || [];
     } catch (err) {
       logger.warn(`  Could not fetch manga metadata: ${err.message}`);
     }
@@ -422,7 +431,16 @@ async function extractMimimoe(chapterUrl) {
   logger.info(`  Mimimoe: "${mangaTitle}" ${chapterTitle} — ${imageUrls.length} pages`);
 
   await randomDelay(config.delayBetweenRequestsMs);
-  return { mangaTitle, chapterNumber, chapterTitle, imageUrls };
+  return { 
+    mangaTitle, 
+    chapterNumber, 
+    chapterTitle, 
+    imageUrls,
+    mangaCoverUrl,
+    mangaDescription,
+    mangaAuthor,
+    mangaGenres
+  };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────

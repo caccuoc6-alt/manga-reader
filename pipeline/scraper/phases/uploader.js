@@ -100,4 +100,24 @@ async function uploadOne(file, folder) {
   throw new Error(`Cloudinary upload failed for ${file.filename}: ${lastError?.message}`);
 }
 
-module.exports = { uploadAll };
+async function uploadUrl(remoteUrl, folder) {
+  if (!process.env.CLOUDINARY_URL && !(process.env.CLOUDINARY_CLOUD_NAME)) return null;
+
+  try {
+    const result = await cloudinary.uploader.upload(remoteUrl, {
+      folder,
+      resource_type: 'image',
+      overwrite: true,
+      transformation: [
+        { quality: 'auto', fetch_format: 'auto' },
+      ],
+    });
+    logger.debug(`  ☁ Uploaded Cover: ${remoteUrl} → ${result.secure_url}`);
+    return result.secure_url;
+  } catch (err) {
+    logger.warn(`  Cover upload failed: ${err.message}`);
+    return null;
+  }
+}
+
+module.exports = { uploadAll, uploadUrl };
