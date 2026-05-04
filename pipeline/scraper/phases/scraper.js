@@ -58,7 +58,7 @@ const SITE_STRATEGIES = [
 
   // ── nHentai (Cloudflare + Gallery structural mapping) ─────────
   {
-    hostPattern: /nhentai\.net/i,
+    hostPattern: /nhentai\.(net|xxx|to)/i,
     type: 'playwright_custom',
     extract: null, // Force playwright
     async extractPlaywright(page, url) {
@@ -67,29 +67,32 @@ const SITE_STRATEGIES = [
       if (!match) throw new Error("Could not find nHentai gallery ID in URL");
       const galleryId = match[1];
 
+      // Use nhentai.xxx if .net is blocking, or stay on current
+      const domainMatch = url.match(/nhentai\.(net|xxx|to)/i);
+      const domain = domainMatch ? domainMatch[0] : 'nhentai.net';
+
       // Navigate to the main gallery page to get metadata and all thumbnails
       if (!url.endsWith(`/g/${galleryId}/`)) {
-        await page.goto(`https://nhentai.net/g/${galleryId}/`, { waitUntil: 'domcontentloaded' });
-        await page.waitForTimeout(3000);
+        await page.goto(`https://${domain}/g/${galleryId}/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForTimeout(4000);
       }
 
       // Title
       const mangaTitle = await page.locator('h1.title .pretty').innerText().catch(() => `nHentai ${galleryId}`);
 
       // Thumbnails to full images logic:
-      // nHentai thumbnails look like: https://t.nhentai.net/galleries/MEDIA_ID/1t.jpg
-      // Full images look like:        https://i.nhentai.net/galleries/MEDIA_ID/1.jpg
-      // Note: we can just fetch the media_id from the first thumbnail
       const imageUrls = await page.evaluate(() => {
-        const thumbs = Array.from(document.querySelectorAll('.gallerythumb img'));
+        const thumbs = Array.from(document.querySelectorAll('.gallerythumb img, .thumb-container img'));
         return thumbs.map((img) => {
           let src = img.getAttribute('data-src') || img.src;
           if (src) {
-            // Replace 't.nhentai.net' -> 'i.nhentai.net'
-            src = src.replace('t.nhentai.net', 'i.nhentai.net');
-            // Remove 't' before the extension (e.g. 1t.jpg -> 1.jpg, 2t.png -> 2.png)
-            src = src.replace(/t\.([^.]+)$/, '.$1');
-            return src;
+            // Reconstruct full res URL from thumbnail
+            // Thumbnails: .../galleries/123/1t.jpg
+            // Full:       .../galleries/123/1.jpg
+            src = src.replace('t.nhentai.net', 'i.nhentai.net')
+                     .replace('t3.nhentai.net', 'i3.nhentai.net')
+                     .replace('t5.nhentai.net', 'i5.nhentai.net');
+            return src.replace(/t\.([^.]+)$/, '.$1');
           }
           return null;
         }).filter(Boolean);
@@ -97,41 +100,21 @@ const SITE_STRATEGIES = [
 
       return {
         mangaTitle,
-        chapterNumber: 1, // nhentai is single "chapter" per gallery
+        chapterNumber: 1,
         chapterTitle: `Gallery ${galleryId}`,
         imageUrls
       };
     }
   },
 
-  // ── Mimimoe (Nuxt/Vue CSR + Cloudflare Turnstile) ─────────────
+  // ── Mimimoe (Lightweight API — no browser needed!) ──────────────
+  // Discovered API: GET https://mimimoe.moe/api/chapters/{chapter_id}
+  // Returns: { info: { id, title, order, manga_id, ... }, pages: [{ image_url }] }
+  // Images hosted on hypranti.site — publicly accessible, no auth required.
   {
     hostPattern: /mimimoe\.moe/i,
-    type: 'playwright_custom',
-    extract: null, // Force playwright
-    async extractPlaywright(page, url) {
-      // It's already on the page and waited for domcontentloaded + timeout in `extractWithPlaywright`.
-      // We just need to scrape the images.
-      
-      const pageTitle = await page.title();
-      // Example title: "Chap 01 - 131287 | Mimi"
-      const { mangaTitle, chapterNumber, chapterTitle } = parseTitle(pageTitle, url);
-
-      const imageUrls = await page.evaluate(() => {
-        return Array.from(document.querySelectorAll('img'))
-          .map(img => img.getAttribute('data-src') || img.src)
-          .filter(src => src && src.startsWith('http'))
-          // exclude UI elements
-          .filter(src => !src.includes('Mimi.webp') && !src.includes('zzz.png'));
-      });
-
-      return {
-        mangaTitle: mangaTitle || 'Mimimoe Manga',
-        chapterNumber: chapterNumber || 1,
-        chapterTitle: chapterTitle || 'Chapter 1',
-        imageUrls
-      };
-    }
+    type: 'api',
+    extract: null, // handled by extractMimimoe()
   },
 
   // ── Generic: <img> tags inside a reader container ─────────────
@@ -196,9 +179,16 @@ async function extractChapter(url) {
 
   const strategy = SITE_STRATEGIES.find(s => s.hostPattern.test(url));
 
-  // MangaDex special API path
+  // Site-specific API paths (no scraping required)
   if (strategy?.type === 'api') {
+    if (/mimimoe\.moe/i.test(url)) return extractMimimoe(url);
     return extractMangaDex(url);
+  }
+
+  // If the site is specifically marked to use Playwright from the start
+  if (strategy?.type === 'playwright_custom') {
+    logger.info('  Site uses custom Playwright strategy. Escalating to headless browser…');
+    return extractWithPlaywright(url, strategy);
   }
 
   // ── Standard HTTP request ─────────────────────────────────────
@@ -211,9 +201,9 @@ async function extractChapter(url) {
     });
     html = response.data;
   } catch (err) {
-    // 403/429 or nhentai/mimimoe custom logic → escalate to Playwright
-    if (err.response?.status === 403 || err.response?.status === 429 || strategy?.type === 'playwright_custom') {
-      logger.warn('  HTTP request blocked (403/429) or custom script required. Escalating to headless browser…');
+    // 403/429 → escalate to Playwright
+    if (err.response?.status === 403 || err.response?.status === 429) {
+      logger.warn('  HTTP request blocked (403/429). Escalating to headless browser…');
       return extractWithPlaywright(url, strategy);
     }
     throw new Error(`Failed to fetch chapter page: ${err.message}`);
@@ -256,10 +246,22 @@ async function extractWithPlaywright(url, customStrategy = null) {
   }
 
   logger.info('  Launching headless Chromium with Stealth…');
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ 
+    headless: true,
+    args: [
+      '--disable-blink-features=AutomationControlled',
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-infobars',
+      '--window-position=0,0',
+      '--ignore-certifcate-errors',
+      '--ignore-certifcate-errors-spki-list',
+    ]
+  });
   const context = await browser.newContext({
-    userAgent: pickUserAgent(),
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
     viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: 1,
   });
   const page = await context.newPage();
 
@@ -340,6 +342,87 @@ async function extractMangaDex(chapterUrl) {
 
   await randomDelay(config.delayBetweenRequestsMs);
   return { mangaTitle, chapterNumber: Number(chapterNum), chapterTitle, imageUrls };
+}
+
+// ─── Mimimoe API handler ──────────────────────────────────────────
+// Uses the discovered internal API at mimimoe.moe/api/chapters/{id}
+// Returns pages with image_url fields hosted on hypranti.site.
+// No Cloudflare bypass needed — works on Render's free tier.
+async function extractMimimoe(chapterUrl) {
+  // URL patterns:
+  //   https://mimimoe.moe/manga/{manga_id}/chapter/{chapter_id}
+  //   https://mimimoe.moe/g/{manga_id}/chapter/Chap-XX-{chapter_id}
+  let chapterId, mangaId;
+
+  // Try /manga/{id}/chapter/{id} format first
+  let match = chapterUrl.match(/\/(?:manga|g)\/([\d]+)\/chapter\/(?:.*?)(\d+)\s*$/i);
+  if (match) {
+    mangaId   = match[1];
+    chapterId = match[2];
+  } else {
+    // Try just extracting trailing number
+    match = chapterUrl.match(/(\d+)\s*\/?$/);
+    if (match) chapterId = match[1];
+  }
+
+  if (!chapterId) {
+    throw new Error(`Could not extract Mimimoe chapter ID from URL: ${chapterUrl}`);
+  }
+
+  logger.info(`  Mimimoe API: fetching chapter ${chapterId}…`);
+
+  // Fetch chapter data (pages + metadata)
+  const chapterResp = await axios.get(`https://mimimoe.moe/api/chapters/${chapterId}`, {
+    headers: {
+      'User-Agent': pickUserAgent(),
+      'Referer': 'https://mimimoe.moe/',
+      'Accept': 'application/json',
+    },
+    timeout: config.requestTimeoutMs,
+  });
+
+  const data = chapterResp.data;
+  const info = data.info || {};
+  const pages = data.pages || [];
+
+  if (pages.length === 0) {
+    throw new Error(`Mimimoe API returned 0 pages for chapter ${chapterId}`);
+  }
+
+  const imageUrls = pages.map(p => p.image_url).filter(Boolean);
+  const chapterNumber = info.order || 1;
+  const chapterTitle = info.title || `Chapter ${chapterNumber}`;
+
+  // If we have the manga_id, fetch the manga title
+  const resolvedMangaId = mangaId || info.manga_id;
+  let mangaTitle = chapterTitle; // fallback
+
+  if (resolvedMangaId) {
+    try {
+      const mangaResp = await axios.get(`https://mimimoe.moe/api/manga/${resolvedMangaId}`, {
+        headers: {
+          'User-Agent': pickUserAgent(),
+          'Referer': 'https://mimimoe.moe/',
+          'Accept': 'application/json',
+        },
+        timeout: config.requestTimeoutMs,
+      });
+      const mangaData = mangaResp.data;
+      // Try common field names for the title
+      mangaTitle = mangaData.title
+        || mangaData.name
+        || mangaData.info?.title
+        || mangaData.info?.name
+        || mangaTitle;
+    } catch (err) {
+      logger.warn(`  Could not fetch manga metadata: ${err.message}`);
+    }
+  }
+
+  logger.info(`  Mimimoe: "${mangaTitle}" ${chapterTitle} — ${imageUrls.length} pages`);
+
+  await randomDelay(config.delayBetweenRequestsMs);
+  return { mangaTitle, chapterNumber, chapterTitle, imageUrls };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────
