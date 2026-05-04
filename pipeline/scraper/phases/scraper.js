@@ -422,7 +422,8 @@ async function extractMimimoe(chapterUrl) {
       mangaCoverUrl = mangaData.cover_url || null;
       mangaDescription = mangaData.description || null;
       mangaAuthor = mangaData.authors?.map(a => a.name).join(', ') || null;
-      mangaGenres = mangaData.genres?.map(g => g.name) || [];
+      // Intentionally not importing genres from the original website
+      mangaGenres = [];
     } catch (err) {
       logger.warn(`  Could not fetch manga metadata: ${err.message}`);
     }
